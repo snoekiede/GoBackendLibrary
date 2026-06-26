@@ -155,7 +155,7 @@ func (store *BookStore) BorrowBook(w http.ResponseWriter, r *http.Request) {
 
 	qtx := store.db.WithTx(tx)
 
-	book, err := store.db.GetBook(r.Context(), req.BookID)
+	book, err := qtx.GetBook(r.Context(), req.BookID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			http.Error(w, "Book not found", http.StatusNotFound)
@@ -229,8 +229,17 @@ func (store *BookStore) ReturnBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tx, err := store.pool.BeginTx(r.Context(), pgx.TxOptions{})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	qtx := store.db.WithTx(tx)
+
 	// Return the book
-	returnRecord, err := store.db.ReturnBook(r.Context(), db.ReturnBookParams{
+	returnRecord, err := qtx.ReturnBook(r.Context(), db.ReturnBookParams{
 		BookID: req.BookID,
 		UserID: req.UserID,
 	})
@@ -245,12 +254,17 @@ func (store *BookStore) ReturnBook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Mark book as available
-	err = store.db.UpdateBookAvailability(r.Context(), db.UpdateBookAvailabilityParams{
+	err = qtx.UpdateBookAvailability(r.Context(), db.UpdateBookAvailabilityParams{
 		ID:        req.BookID,
 		Available: pgtype.Bool{Bool: true, Valid: true},
 	})
 
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err = tx.Commit(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
