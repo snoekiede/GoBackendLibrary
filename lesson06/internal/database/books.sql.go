@@ -14,7 +14,7 @@ import (
 const createBook = `-- name: CreateBook :one
 INSERT INTO books (title, author, description, year_of_publication)
 VALUES ($1, $2, $3, $4)
-RETURNING id, title, author, description, year_of_publication, created_at, updated_at, available
+RETURNING id, title, author, description, year_of_publication, created_at, updated_at, available, deleted_at
 `
 
 type CreateBookParams struct {
@@ -41,12 +41,14 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Available,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const deleteBook = `-- name: DeleteBook :exec
-DELETE FROM books
+UPDATE books
+SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = $1
 `
 
@@ -56,8 +58,8 @@ func (q *Queries) DeleteBook(ctx context.Context, id int32) error {
 }
 
 const getBook = `-- name: GetBook :one
-SELECT id, title, author, description, year_of_publication, created_at, updated_at, available FROM books
-WHERE id = $1
+SELECT id, title, author, description, year_of_publication, created_at, updated_at, available, deleted_at FROM books
+WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) GetBook(ctx context.Context, id int32) (Book, error) {
@@ -72,12 +74,13 @@ func (q *Queries) GetBook(ctx context.Context, id int32) (Book, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Available,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getBookForUpdate = `-- name: GetBookForUpdate :one
-SELECT id, title, author, description, year_of_publication, created_at, updated_at, available FROM books
+SELECT id, title, author, description, year_of_publication, created_at, updated_at, available, deleted_at FROM books
 WHERE id = $1
 FOR UPDATE
 `
@@ -94,12 +97,14 @@ func (q *Queries) GetBookForUpdate(ctx context.Context, id int32) (Book, error) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Available,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const listBooks = `-- name: ListBooks :many
-SELECT id, title, author, description, year_of_publication, created_at, updated_at, available FROM books
+SELECT id, title, author, description, year_of_publication, created_at, updated_at, available, deleted_at FROM books
+WHERE deleted_at IS NULL
 ORDER BY id
 `
 
@@ -121,6 +126,7 @@ func (q *Queries) ListBooks(ctx context.Context) ([]Book, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Available,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -133,7 +139,7 @@ func (q *Queries) ListBooks(ctx context.Context) ([]Book, error) {
 }
 
 const searchBooksByAuthor = `-- name: SearchBooksByAuthor :many
-SELECT id, title, author, description, year_of_publication, created_at, updated_at, available FROM books
+SELECT id, title, author, description, year_of_publication, created_at, updated_at, available, deleted_at FROM books
 WHERE author ILIKE '%' || $1 || '%'
 ORDER BY author, title
 `
@@ -156,6 +162,7 @@ func (q *Queries) SearchBooksByAuthor(ctx context.Context, dollar_1 pgtype.Text)
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Available,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -168,7 +175,7 @@ func (q *Queries) SearchBooksByAuthor(ctx context.Context, dollar_1 pgtype.Text)
 }
 
 const searchBooksByTitle = `-- name: SearchBooksByTitle :many
-SELECT id, title, author, description, year_of_publication, created_at, updated_at, available FROM books
+SELECT id, title, author, description, year_of_publication, created_at, updated_at, available, deleted_at FROM books
 WHERE title ILIKE '%' || $1 || '%'
 ORDER BY title
 `
@@ -191,6 +198,7 @@ func (q *Queries) SearchBooksByTitle(ctx context.Context, dollar_1 pgtype.Text) 
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Available,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -206,7 +214,7 @@ const updateBook = `-- name: UpdateBook :one
 UPDATE books
 SET title = $2, author = $3, description = $4, year_of_publication = $5, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, title, author, description, year_of_publication, created_at, updated_at, available
+RETURNING id, title, author, description, year_of_publication, created_at, updated_at, available, deleted_at
 `
 
 type UpdateBookParams struct {
@@ -235,6 +243,7 @@ func (q *Queries) UpdateBook(ctx context.Context, arg UpdateBookParams) (Book, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Available,
+		&i.DeletedAt,
 	)
 	return i, err
 }

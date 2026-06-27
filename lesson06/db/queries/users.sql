@@ -5,7 +5,7 @@ RETURNING *;
 
 -- name: GetUser :one
 SELECT * FROM users
-WHERE id = $1;
+WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: GetUserByEmail :one
 SELECT * FROM users
@@ -14,6 +14,7 @@ WHERE email = $1;
 
 -- name: ListUsers :many
 SELECT * FROM users
+WHERE deleted_at IS NULL
 ORDER BY id;
 
 -- name: UpdateUser :one
@@ -23,5 +24,6 @@ WHERE id = $1
 RETURNING *;
 
 -- name: DeleteUser :exec
-DELETE FROM users
+UPDATE users
+SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = $1;
