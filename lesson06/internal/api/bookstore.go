@@ -155,7 +155,7 @@ func (store *BookStore) BorrowBook(w http.ResponseWriter, r *http.Request) {
 
 	qtx := store.db.WithTx(tx)
 
-	book, err := qtx.GetBook(r.Context(), req.BookID)
+	book, err := qtx.GetBookForUpdate(r.Context(), req.BookID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			http.Error(w, "Book not found", http.StatusNotFound)
