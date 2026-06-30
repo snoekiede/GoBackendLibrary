@@ -2,16 +2,16 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:15-alpine
+    image: postgres:18-alpine
     container_name: bookstore-db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: "Vlucht2040#"
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: gobooksnew
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d gobooksnew"]
       interval: 5s
@@ -25,7 +25,7 @@ services:
       dockerfile: deployment/Dockerfile.migrate
     volumes:
       - ./db/migrations:/migrations
-    command: ["postgres", "postgres://postgres:Vlucht2040%23@db:5432/gobooksnew?sslmode=disable", "up"]
+    command: ["postgres", "postgres://postgres:password@db:5432/gobooksnew?sslmode=disable", "up"]
     depends_on:
       db:
         condition: service_healthy
@@ -36,7 +36,7 @@ services:
       dockerfile: Dockerfile
     container_name: bookstore-api
     environment:
-      DATABASE_URL: "postgres://postgres:Vlucht2040%23@db:5432/gobooksnew?sslmode=disable"
+      DATABASE_URL: "postgres://postgres:password@db:5432/gobooksnew?sslmode=disable"
     ports:
       - "3000:3000"
     depends_on:
