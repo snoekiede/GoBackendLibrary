@@ -1,0 +1,621 @@
+basePath: /
+definitions:
+  bookbackend_internal_database.Book:
+    properties:
+      author:
+        type: string
+      available:
+        $ref: '#/definitions/pgtype.Bool'
+      created_at:
+        $ref: '#/definitions/pgtype.Timestamp'
+      deleted_at:
+        $ref: '#/definitions/pgtype.Timestamp'
+      description:
+        $ref: '#/definitions/pgtype.Text'
+      id:
+        type: integer
+      title:
+        type: string
+      updated_at:
+        $ref: '#/definitions/pgtype.Timestamp'
+      year_of_publication:
+        $ref: '#/definitions/pgtype.Int4'
+    type: object
+  bookbackend_internal_database.GetOverdueBooksRow:
+    properties:
+      author:
+        type: string
+      book_id:
+        type: integer
+      borrowed_at:
+        $ref: '#/definitions/pgtype.Timestamp'
+      due_date:
+        $ref: '#/definitions/pgtype.Timestamp'
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      returned_at:
+        $ref: '#/definitions/pgtype.Timestamp'
+      title:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  bookbackend_internal_database.GetUserBorrowedBooksRow:
+    properties:
+      author:
+        type: string
+      book_id:
+        type: integer
+      borrowed_at:
+        $ref: '#/definitions/pgtype.Timestamp'
+      due_date:
+        $ref: '#/definitions/pgtype.Timestamp'
+      id:
+        type: integer
+      returned_at:
+        $ref: '#/definitions/pgtype.Timestamp'
+      title:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  bookbackend_internal_database.User:
+    properties:
+      created_at:
+        $ref: '#/definitions/pgtype.Timestamp'
+      deleted_at:
+        $ref: '#/definitions/pgtype.Timestamp'
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updated_at:
+        $ref: '#/definitions/pgtype.Timestamp'
+    type: object
+  internal_api.BorrowBookRequest:
+    properties:
+      book_id:
+        type: integer
+      days:
+        description: How many days to borrow for
+        type: integer
+      user_id:
+        type: integer
+    type: object
+  internal_api.CreateBookRequest:
+    properties:
+      author:
+        type: string
+      description:
+        type: string
+      title:
+        type: string
+      year_of_publication:
+        type: integer
+    type: object
+  internal_api.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_api.ReturnBookRequest:
+    properties:
+      book_id:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+  internal_api.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  pgtype.Bool:
+    properties:
+      bool:
+        type: boolean
+      valid:
+        type: boolean
+    type: object
+  pgtype.InfinityModifier:
+    enum:
+    - 1
+    - 0
+    - -1
+    format: int32
+    type: integer
+    x-enum-varnames:
+    - Infinity
+    - Finite
+    - NegativeInfinity
+  pgtype.Int4:
+    properties:
+      int32:
+        format: int32
+        type: integer
+      valid:
+        type: boolean
+    type: object
+  pgtype.Text:
+    properties:
+      string:
+        type: string
+      valid:
+        type: boolean
+    type: object
+  pgtype.Timestamp:
+    properties:
+      infinityModifier:
+        $ref: '#/definitions/pgtype.InfinityModifier'
+      time:
+        description: Time zone will be ignored when encoding to PostgreSQL.
+        type: string
+      valid:
+        type: boolean
+    type: object
+host: localhost:3000
+info:
+  contact:
+    email: support@bookstore.com
+    name: API Support
+  description: API for managing a book store with borrowing functionality
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Book Store API
+  version: "1.0"
+paths:
+  /books:
+    get:
+      consumes:
+      - application/json
+      description: Get all books from the database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/bookbackend_internal_database.Book'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all books
+      tags:
+      - books
+    post:
+      consumes:
+      - application/json
+      description: Create a new book in the database
+      parameters:
+      - description: Book details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.CreateBookRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/bookbackend_internal_database.Book'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new book
+      tags:
+      - books
+  /books/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a book by its ID
+      parameters:
+      - description: Book ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a book
+      tags:
+      - books
+    get:
+      consumes:
+      - application/json
+      description: Get a single book by its ID
+      parameters:
+      - description: Book ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bookbackend_internal_database.Book'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a book by ID
+      tags:
+      - books
+  /borrow:
+    post:
+      consumes:
+      - application/json
+      description: Borrow a book for a specified number of days
+      parameters:
+      - description: Borrow details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.BorrowBookRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Borrow a book
+      tags:
+      - borrowing
+  /overdue:
+    get:
+      consumes:
+      - application/json
+      description: Get all books that are overdue for return
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/bookbackend_internal_database.GetOverdueBooksRow'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get overdue books
+      tags:
+      - borrowing
+  /return:
+    post:
+      consumes:
+      - application/json
+      description: Return a book that was previously borrowed
+      parameters:
+      - description: Return details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.ReturnBookRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Return a borrowed book
+      tags:
+      - borrowing
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Get all users from the database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/bookbackend_internal_database.User'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Add a new user to the database
+      parameters:
+      - description: User details
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/bookbackend_internal_database.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new user
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a user
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: Get a single user by their ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bookbackend_internal_database.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a user by ID
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update user information by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated user details
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bookbackend_internal_database.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a user
+      tags:
+      - users
+  /users/{id}/borrowed:
+    get:
+      consumes:
+      - application/json
+      description: Get all books currently borrowed by a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/bookbackend_internal_database.GetUserBorrowedBooksRow'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user's borrowed books
+      tags:
+      - borrowing
+schemes:
+- http
+swagger: "2.0"
