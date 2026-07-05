@@ -8,6 +8,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -23,7 +26,7 @@ type CreateBookRequest struct {
 	YearOfPublication int32  `json:"year_of_publication"`
 }
 
-// @title Book Store API
+// @title Library API
 // @version 1.0
 // @description API for managing a book store with borrowing functionality
 // @termsOfService http://swagger.io/terms/
@@ -70,7 +73,30 @@ func main() {
 	setupUserRoutes(r, userstore)
 	setupBorrowRoutes(r, bookstore)
 
-	http.ListenAndServe(":3000", r)
+	srv := &http.Server{
+		Addr:    ":3000",
+		Handler: r,
+	}
+
+	go func() {
+		log.Println("Server starting on port 3000")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+	log.Println("Server exited gracefully")
+
 }
 
 func setupBookRoutes(r *chi.Mux, store *api.BookStore) {

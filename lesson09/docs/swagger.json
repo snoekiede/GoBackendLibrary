@@ -5,7 +5,7 @@
     "swagger": "2.0",
     "info": {
         "description": "API for managing a book store with borrowing functionality",
-        "title": "Book Store API",
+        "title": "Library API",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "API Support",

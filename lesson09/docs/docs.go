@@ -946,7 +946,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:3000",
 	BasePath:         "/",
 	Schemes:          []string{"http"},
-	Title:            "Book Store API",
+	Title:            "Library API",
 	Description:      "API for managing a book store with borrowing functionality",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
