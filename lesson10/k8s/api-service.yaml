@@ -7,6 +7,7 @@ spec:
   selector:
     app: bookstore-api
   ports:
-    - port: 3000
-      targetPort: 3000
-  type: LoadBalancer  # Use NodePort or ClusterIP based on your needs
+  - port: 3000
+    targetPort: 3000
+  type: LoadBalancer
+
