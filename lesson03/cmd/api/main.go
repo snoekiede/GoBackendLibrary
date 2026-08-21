@@ -27,13 +27,18 @@ func main() {
 
 	pool, err := pgxpool.New(context.Background(), dbUrl)
 
-	queries := db.New(pool)
-	bookhandler := api.NewBookHandler(queries)
-
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer pool.Close()
+
+	if err := pool.Ping(context.Background()); err != nil {
+		log.Fatal(err)
+	}
+
+	queries := db.New(pool)
+	bookhandler := api.NewBookHandler(queries)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -46,19 +51,9 @@ func main() {
 }
 
 func addBookRoutes(router *chi.Mux, bookhandler *api.BookHandler) {
-	router.Get("/books", func(w http.ResponseWriter, r *http.Request) {
-		bookhandler.FetchBooks(w, r)
-	})
-
-	router.Get("/books/{id}", func(w http.ResponseWriter, r *http.Request) {
-		bookhandler.FetchBookByID(w, r)
-	})
-
-	router.Post("/books", func(w http.ResponseWriter, r *http.Request) {
-		bookhandler.CreateBook(w, r)
-	})
-
-	router.Delete("/books/{id}", func(w http.ResponseWriter, r *http.Request) {
-		bookhandler.DeleteBook(w, r)
-	})
+	router.Get("/books", bookhandler.FetchBooks)
+	router.Get("/books/{id}", bookhandler.FetchBookByID)
+	router.Post("/books", bookhandler.CreateBook)
+	router.Put("/books/{id}", bookhandler.UpdateBook)
+	router.Delete("/books/{id}", bookhandler.DeleteBook)
 }
