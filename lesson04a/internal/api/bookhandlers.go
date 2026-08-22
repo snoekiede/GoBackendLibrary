@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bookbackend/internal/api/models"
 	db "bookbackend/internal/database"
+
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -37,12 +39,14 @@ func NewBookHandler(queries db.Querier) *BookHandler {
 func (h *BookHandler) FetchBooks(w http.ResponseWriter, r *http.Request) {
 	books, err := h.queries.ListBooks(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(books)
+	var responses []models.BookResponse
+	for _, book := range books {
+		responses = append(responses, models.ToBookResponse(book))
+	}
+	writeJSON(w, http.StatusOK, responses)
 }
 
 func (h *BookHandler) FetchBookByID(w http.ResponseWriter, r *http.Request) {
@@ -50,29 +54,28 @@ func (h *BookHandler) FetchBookByID(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	book, err := h.queries.GetBook(r.Context(), int32(id))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			http.Error(w, "Book not found", http.StatusNotFound)
+			writeError(w, http.StatusNotFound, "Book not found")
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(book)
+	writeJSON(w, http.StatusOK, models.ToBookResponse(book))
 }
 
 func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 	var req CreateBookRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -91,13 +94,11 @@ func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 
 	book, err := h.queries.CreateBook(r.Context(), params)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(book)
+	writeJSON(w, http.StatusCreated, models.ToBookResponse(book))
 }
 
 func (h *BookHandler) DeleteBook(w http.ResponseWriter, r *http.Request) {
@@ -110,20 +111,20 @@ func (h *BookHandler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 	_, err = h.queries.DeleteBook(r.Context(), int32(id))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			http.Error(w, "Book not found", http.StatusNotFound)
+			writeError(w, http.StatusNotFound, "Book not found")
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	writeJSON(w, http.StatusNoContent, nil)
 }
 
 func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id32, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	var req UpdateBookRequest
@@ -145,12 +146,11 @@ func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	book, err := h.queries.UpdateBook(r.Context(), params)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			http.Error(w, "Book not found", http.StatusNotFound)
+			writeError(w, http.StatusNotFound, "Book not found")
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(book)
+	writeJSON(w, http.StatusOK, models.ToBookResponse(book))
 }
