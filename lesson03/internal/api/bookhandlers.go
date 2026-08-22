@@ -102,22 +102,17 @@ func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 
 func (h *BookHandler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
-	id32, err := strconv.Atoi(idStr)
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	_, err = h.queries.GetBook(r.Context(), int32(id32))
+	_, err = h.queries.DeleteBook(r.Context(), int32(id))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			http.Error(w, "Book not found", http.StatusNotFound)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = h.queries.DeleteBook(r.Context(), int32(id32))
-	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -149,6 +144,10 @@ func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	}
 	book, err := h.queries.UpdateBook(r.Context(), params)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			http.Error(w, "Book not found", http.StatusNotFound)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
