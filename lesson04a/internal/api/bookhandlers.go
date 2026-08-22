@@ -3,11 +3,11 @@ package api
 import (
 	"bookbackend/internal/api/models"
 	db "bookbackend/internal/database"
+	"strings"
 
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -21,11 +21,31 @@ type CreateBookRequest struct {
 	YearOfPublication int32  `json:"year_of_publication"`
 }
 
+func (r CreateBookRequest) Validate() error {
+	if strings.TrimSpace(r.Title) == "" {
+		return errors.New("title is required")
+	}
+	if strings.TrimSpace(r.Author) == "" {
+		return errors.New("author is required")
+	}
+	return nil
+}
+
 type UpdateBookRequest struct {
 	Title             string `json:"title"`
 	Author            string `json:"author"`
 	Description       string `json:"description"`
 	YearOfPublication int32  `json:"year_of_publication"`
+}
+
+func (r UpdateBookRequest) Validate() error {
+	if strings.TrimSpace(r.Title) == "" {
+		return errors.New("title is required")
+	}
+	if strings.TrimSpace(r.Author) == "" {
+		return errors.New("author is required")
+	}
+	return nil
 }
 
 type BookHandler struct {
@@ -50,9 +70,7 @@ func (h *BookHandler) FetchBooks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BookHandler) FetchBookByID(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-
-	id, err := strconv.Atoi(idStr)
+	id, err := parseID(r)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -75,6 +93,10 @@ func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 	var req CreateBookRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := req.Validate(); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -102,10 +124,9 @@ func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BookHandler) DeleteBook(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.Atoi(idStr)
+	id, err := parseID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	_, err = h.queries.DeleteBook(r.Context(), int32(id))
@@ -121,19 +142,24 @@ func (h *BookHandler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id32, err := strconv.Atoi(idStr)
+	id, err := parseID(r)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	var req UpdateBookRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	params := db.UpdateBookParams{
-		ID:     int32(id32),
+		ID:     id,
 		Title:  req.Title,
 		Author: req.Author,
 	}
@@ -153,4 +179,16 @@ func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, models.ToBookResponse(book))
+}
+
+func (h *BookHandler) Routes() chi.Router {
+	r := chi.NewRouter()
+
+	r.Get("/", h.FetchBooks)
+	r.Get("/{id}", h.FetchBookByID)
+	r.Post("/", h.CreateBook)
+	r.Put("/{id}", h.UpdateBook)
+	r.Delete("/{id}", h.DeleteBook)
+
+	return r
 }

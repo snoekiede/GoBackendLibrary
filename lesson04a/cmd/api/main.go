@@ -45,15 +45,7 @@ func main() {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello World"))
 	})
-	addBookRoutes(r, bookhandler)
+	r.Mount("/books", bookhandler.Routes())
 
-	http.ListenAndServe(":3000", r)
-}
-
-func addBookRoutes(router *chi.Mux, bookhandler *api.BookHandler) {
-	router.Get("/books", bookhandler.FetchBooks)
-	router.Get("/books/{id}", bookhandler.FetchBookByID)
-	router.Post("/books", bookhandler.CreateBook)
-	router.Put("/books/{id}", bookhandler.UpdateBook)
-	router.Delete("/books/{id}", bookhandler.DeleteBook)
+	log.Fatal(http.ListenAndServe(":3000", r))
 }
