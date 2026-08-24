@@ -18,7 +18,7 @@ type OverdueBooksRowResponse struct {
 	Email      string    `json:"email"`
 }
 
-func (r OverdueBooksRowResponse) ToOverdueBooksRowResponse(row db.GetOverdueBooksRow) OverdueBooksRowResponse {
+func ToOverdueBooksRowResponse(row db.GetOverdueBooksRow) OverdueBooksRowResponse {
 	return OverdueBooksRowResponse{
 		ID:         row.ID,
 		BookID:     row.BookID,

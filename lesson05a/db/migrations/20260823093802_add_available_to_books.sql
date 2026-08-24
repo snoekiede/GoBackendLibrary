@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-ALTER TABLE books ADD COLUMN available BOOLEAN DEFAULT TRUE;
+ALTER TABLE books ADD COLUMN available BOOLEAN NOT NULL DEFAULT TRUE;
 -- +goose StatementEnd
 
 -- +goose Down

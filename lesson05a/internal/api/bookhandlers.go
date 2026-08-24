@@ -317,7 +317,7 @@ func (h *BookHandler) GetUserBorrowedBooks(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	books, err := h.queries.GetUserBorrowedBooks(r.Context(), int32(id))
+	books, err := h.queries.GetUserBorrowedBooks(r.Context(), id)
 	if err != nil {
 		log.Printf("Unable to get user borrowed books: %v", err)
 		writeError(w, http.StatusInternalServerError, "Internal server error")
@@ -325,7 +325,7 @@ func (h *BookHandler) GetUserBorrowedBooks(w http.ResponseWriter, r *http.Reques
 	}
 	var response = make([]models.BorrowedBooksRowResponse, 0, len(books))
 	for _, book := range books {
-		response = append(response, models.BorrowedBooksRowResponse{}.ToBorrowRecordRowResponse(book))
+		response = append(response, models.ToBorrowRecordRowResponse(book))
 	}
 	writeJSON(w, http.StatusOK, response)
 }
@@ -340,7 +340,7 @@ func (h *BookHandler) GetOverdueBooks(w http.ResponseWriter, r *http.Request) {
 
 	var response = make([]models.OverdueBooksRowResponse, 0, len(books))
 	for _, book := range books {
-		response = append(response, models.OverdueBooksRowResponse{}.ToOverdueBooksRowResponse(book))
+		response = append(response, models.ToOverdueBooksRowResponse(book))
 	}
 	writeJSON(w, http.StatusOK, response)
 }

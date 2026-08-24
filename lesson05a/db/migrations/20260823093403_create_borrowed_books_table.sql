@@ -7,7 +7,6 @@ CREATE TABLE borrowed_books (
                                 borrowed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                 due_date TIMESTAMP NOT NULL,
                                 returned_at TIMESTAMP,
-                                CONSTRAINT active_borrow UNIQUE (book_id, returned_at)
 );
 
 CREATE INDEX idx_borrowed_books_user_id ON borrowed_books(user_id);

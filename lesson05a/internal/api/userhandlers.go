@@ -7,16 +7,17 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 )
 
 func validateUser(name, email string) error {
-	if name == "" {
+	if strings.TrimSpace(name) == "" {
 		return errors.New("name is required")
 	}
-	if email == "" {
+	if strings.TrimSpace(email) == "" {
 		return errors.New("email is required")
 	}
 	return nil
@@ -123,6 +124,11 @@ func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("Error decoding request body: %v", err)
 		writeError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 

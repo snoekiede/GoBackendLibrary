@@ -16,7 +16,7 @@ type BorrowedBooksRowResponse struct {
 	Author     string    `json:"author"`
 }
 
-func (r BorrowedBooksRowResponse) ToBorrowRecordRowResponse(row db.GetUserBorrowedBooksRow) BorrowedBooksRowResponse {
+func ToBorrowRecordRowResponse(row db.GetUserBorrowedBooksRow) BorrowedBooksRowResponse {
 	return BorrowedBooksRowResponse{
 		ID:         row.ID,
 		BookID:     row.BookID,
