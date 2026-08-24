@@ -40,15 +40,15 @@ func (u UpdateUserRequest) Validate() error {
 	return validateUser(u.Name, u.Email)
 }
 
-type UserStore struct {
+type UserHandler struct {
 	db db.Querier
 }
 
-func NewUserStore(db db.Querier) *UserStore {
-	return &UserStore{db: db}
+func NewUserHandler(db db.Querier) *UserHandler {
+	return &UserHandler{db: db}
 }
 
-func (store *UserStore) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var req CreateUserRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -60,7 +60,7 @@ func (store *UserStore) CreateUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	user, err := store.db.CreateUser(r.Context(), db.CreateUserParams{
+	user, err := handler.db.CreateUser(r.Context(), db.CreateUserParams{
 		Name:  req.Name,
 		Email: req.Email,
 	})
@@ -73,8 +73,8 @@ func (store *UserStore) CreateUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, models.ToUserResponse(user))
 }
 
-func (store *UserStore) FetchAllUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := store.db.ListUsers(r.Context())
+func (handler *UserHandler) FetchAllUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := handler.db.ListUsers(r.Context())
 	if err != nil {
 		log.Printf("Error fetching users: %v", err)
 		writeError(w, http.StatusInternalServerError, "Failed to fetch users")
@@ -89,7 +89,7 @@ func (store *UserStore) FetchAllUsers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, userResponses)
 }
 
-func (store *UserStore) FetchUserById(w http.ResponseWriter, r *http.Request) {
+func (handler *UserHandler) FetchUserById(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
 	if err != nil {
 		log.Printf("Error parsing ID: %v", err)
@@ -97,7 +97,7 @@ func (store *UserStore) FetchUserById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := store.db.GetUser(r.Context(), id)
+	user, err := handler.db.GetUser(r.Context(), id)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -111,7 +111,7 @@ func (store *UserStore) FetchUserById(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, models.ToUserResponse(user))
 }
 
-func (store *UserStore) UpdateUser(w http.ResponseWriter, r *http.Request) {
+func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
 	if err != nil {
 		log.Printf("Error parsing ID: %v", err)
@@ -127,7 +127,7 @@ func (store *UserStore) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// First check if user exists
-	_, err = store.db.GetUser(r.Context(), id)
+	_, err = handler.db.GetUser(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "User not found")
@@ -139,7 +139,7 @@ func (store *UserStore) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update the user
-	user, err := store.db.UpdateUser(r.Context(), db.UpdateUserParams{
+	user, err := handler.db.UpdateUser(r.Context(), db.UpdateUserParams{
 		ID:    id,
 		Name:  req.Name,
 		Email: req.Email,
@@ -154,7 +154,7 @@ func (store *UserStore) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, models.ToUserResponse(user))
 }
 
-func (store *UserStore) DeleteUser(w http.ResponseWriter, r *http.Request) {
+func (handler *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
 	if err != nil {
 		log.Printf("Error parsing ID: %v", err)
@@ -163,7 +163,7 @@ func (store *UserStore) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if user exists before attempting to delete
-	_, err = store.db.GetUser(r.Context(), int32(id))
+	_, err = handler.db.GetUser(r.Context(), int32(id))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "User not found")
@@ -174,7 +174,7 @@ func (store *UserStore) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = store.db.DeleteUser(r.Context(), int32(id))
+	err = handler.db.DeleteUser(r.Context(), int32(id))
 	if err != nil {
 		log.Printf("Error deleting user: %v", err)
 		writeError(w, http.StatusInternalServerError, "Failed to delete user")
@@ -184,12 +184,12 @@ func (store *UserStore) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (store *UserStore) SetupRoutes() chi.Router {
+func (handler *UserHandler) SetupRoutes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/", store.FetchAllUsers)
-	r.Get("/{id}", store.FetchUserById)
-	r.Post("/", store.CreateUser)
-	r.Put("/{id}", store.UpdateUser)
-	r.Delete("/{id}", store.DeleteUser)
+	r.Get("/", handler.FetchAllUsers)
+	r.Get("/{id}", handler.FetchUserById)
+	r.Post("/", handler.CreateUser)
+	r.Put("/{id}", handler.UpdateUser)
+	r.Delete("/{id}", handler.DeleteUser)
 	return r
 }

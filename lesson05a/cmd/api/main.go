@@ -39,13 +39,13 @@ func main() {
 
 	queries := db.New(pool)
 	bookhandler := api.NewBookHandler(queries)
-	userstore := api.NewUserStore(queries)
+	userhandler := api.NewUserHandler(queries)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
 	r.Mount("/books", bookhandler.Routes())
-	r.Mount("/users", userstore.SetupRoutes())
+	r.Mount("/users", userhandler.SetupRoutes())
 
 	log.Fatal(http.ListenAndServe(":3000", r))
 }
