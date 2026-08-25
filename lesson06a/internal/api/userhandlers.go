@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func validateUser(name, email string) error {
@@ -42,11 +43,12 @@ func (u UpdateUserRequest) Validate() error {
 }
 
 type UserHandler struct {
-	db db.Querier
+	db   QuerierWithTx
+	pool *pgxpool.Pool
 }
 
-func NewUserHandler(db db.Querier) *UserHandler {
-	return &UserHandler{db: db}
+func NewUserHandler(db QuerierWithTx, pool *pgxpool.Pool) *UserHandler {
+	return &UserHandler{db: db, pool: pool}
 }
 
 func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -131,6 +133,7 @@ func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
 	// Update the user
 	user, err := handler.db.UpdateUser(r.Context(), db.UpdateUserParams{
 		ID:    id,

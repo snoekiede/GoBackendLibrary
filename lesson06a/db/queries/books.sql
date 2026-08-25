@@ -3,14 +3,16 @@ INSERT INTO books (title, author, description, year_of_publication)
 VALUES ($1, $2, $3, $4)
 RETURNING *;
 
-
 -- name: GetBook :one
 SELECT * FROM books
-WHERE id = $1;
+WHERE id = $1 AND deleted_at IS NULL;
+
 
 -- name: ListBooks :many
 SELECT * FROM books
+WHERE deleted_at IS NULL
 ORDER BY id;
+
 
 -- name: UpdateBook :one
 UPDATE books
@@ -19,9 +21,11 @@ WHERE id = $1
 RETURNING *;
 
 -- name: DeleteBook :one
-DELETE FROM books
+UPDATE books
+SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = $1
 RETURNING id;
+
 
 -- name: SearchBooksByTitle :many
 SELECT * FROM books

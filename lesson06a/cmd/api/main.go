@@ -38,8 +38,8 @@ func main() {
 	}
 
 	queries := db.New(pool)
-	bookhandler := api.NewBookHandler(queries)
-	userhandler := api.NewUserHandler(queries)
+	bookhandler := api.NewBookHandler(queries, pool)
+	userhandler := api.NewUserHandler(queries, pool)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
