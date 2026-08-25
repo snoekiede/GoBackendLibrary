@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type CreateBookRequest struct {
@@ -60,11 +61,12 @@ type ReturnBookRequest struct {
 }
 
 type BookHandler struct {
-	queries db.Querier
+	queries QuerierWithTx
+	pool    *pgxpool.Pool
 }
 
-func NewBookHandler(queries db.Querier) *BookHandler {
-	return &BookHandler{queries: queries}
+func NewBookHandler(queries QuerierWithTx, pool *pgxpool.Pool) *BookHandler {
+	return &BookHandler{queries: queries, pool: pool}
 }
 
 func (h *BookHandler) FetchBooks(w http.ResponseWriter, r *http.Request) {
@@ -215,9 +217,18 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 	if req.Days == 0 {
 		req.Days = 14
 	}
+	tx, err := h.pool.BeginTx(r.Context(), pgx.TxOptions{})
+	if err != nil {
+		log.Printf("Unable to start transaction: %v", err)
+		writeError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	qtx := h.queries.WithTx(tx)
 
 	//Check if book exists
-	book, err := h.queries.GetBook(r.Context(), req.BookID)
+	book, err := qtx.GetBookForUpdate(r.Context(), req.BookID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "Book not found")
@@ -234,7 +245,7 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.queries.GetUser(r.Context(), req.UserID)
+	_, err = qtx.GetUser(r.Context(), req.UserID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "User not found")
@@ -247,7 +258,7 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 
 	dueDate := time.Now().Add(time.Duration(req.Days) * 24 * time.Hour)
 
-	borrowRecord, err := h.queries.BorrowBook(r.Context(), db.BorrowBookParams{
+	borrowRecord, err := qtx.BorrowBook(r.Context(), db.BorrowBookParams{
 		BookID:  req.BookID,
 		UserID:  req.UserID,
 		DueDate: pgtype.Timestamp{Time: dueDate, Valid: true},
@@ -258,12 +269,18 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}
-	err = h.queries.UpdateBookAvailability(r.Context(), db.UpdateBookAvailabilityParams{
+	err = qtx.UpdateBookAvailability(r.Context(), db.UpdateBookAvailabilityParams{
 		ID:        req.BookID,
 		Available: false,
 	})
 	if err != nil {
 		log.Printf("Unable to update book availability: %v", err)
+		writeError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+
+	if err = tx.Commit(r.Context()); err != nil {
+		log.Printf("Unable to commit transaction: %v", err)
 		writeError(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}
@@ -278,9 +295,17 @@ func (h *BookHandler) ReturnBook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
+	tx, err := h.pool.BeginTx(r.Context(), pgx.TxOptions{})
+	if err != nil {
+		log.Printf("Unable to start transaction: %v", err)
+		writeError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	defer tx.Rollback(r.Context())
 
+	qtx := h.queries.WithTx(tx)
 	// Return the book
-	returnRecord, err := h.queries.ReturnBook(r.Context(), db.ReturnBookParams{
+	returnRecord, err := qtx.ReturnBook(r.Context(), db.ReturnBookParams{
 		BookID: req.BookID,
 		UserID: req.UserID,
 	})
@@ -296,13 +321,18 @@ func (h *BookHandler) ReturnBook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Mark book as available
-	err = h.queries.UpdateBookAvailability(r.Context(), db.UpdateBookAvailabilityParams{
+	err = qtx.UpdateBookAvailability(r.Context(), db.UpdateBookAvailabilityParams{
 		ID:        req.BookID,
 		Available: true,
 	})
 
 	if err != nil {
 		log.Printf("Unable to update book availability: %v", err)
+		writeError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	if err = tx.Commit(r.Context()); err != nil {
+		log.Printf("Unable to commit transaction: %v", err)
 		writeError(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}

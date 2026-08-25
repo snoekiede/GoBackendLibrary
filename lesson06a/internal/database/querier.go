@@ -17,6 +17,7 @@ type Querier interface {
 	DeleteBook(ctx context.Context, id int32) (int32, error)
 	DeleteUser(ctx context.Context, id int32) (int32, error)
 	GetBook(ctx context.Context, id int32) (Book, error)
+	GetBookForUpdate(ctx context.Context, id int32) (Book, error)
 	GetOverdueBooks(ctx context.Context) ([]GetOverdueBooksRow, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserBorrowHistory(ctx context.Context, userID int32) ([]GetUserBorrowHistoryRow, error)
