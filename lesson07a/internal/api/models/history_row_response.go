@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type BorrowedBooksRowResponse struct {
+type HistoryRowResponse struct {
 	ID         int32      `json:"id"`
 	BookID     int32      `json:"book_id"`
 	UserID     int32      `json:"user_id"`
@@ -16,8 +16,9 @@ type BorrowedBooksRowResponse struct {
 	Author     string     `json:"author"`
 }
 
-func ToBorrowRecordRowResponse(row db.GetUserBorrowedBooksRow) BorrowedBooksRowResponse {
-	response := BorrowedBooksRowResponse{
+func ToHistoryRowResponse(row db.GetUserBorrowHistoryRow) HistoryRowResponse {
+
+	response := HistoryRowResponse{
 		ID:         row.ID,
 		BookID:     row.BookID,
 		UserID:     row.UserID,
