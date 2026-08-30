@@ -76,7 +76,7 @@ func NewBookHandler(queries QuerierWithTx, pool *pgxpool.Pool) *BookHandler {
 // @Accept json
 // @Produce json
 // @Success 200 {array} models.BookResponse
-// @Failure 500 {object} map[string]string
+// @Failure 500 {object} models.ErrorResponse
 // @Router /books [get]
 func (h *BookHandler) FetchBooks(w http.ResponseWriter, r *http.Request) {
 	books, err := h.queries.ListBooks(r.Context())
@@ -100,10 +100,10 @@ func (h *BookHandler) FetchBooks(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path int true "Book ID"
 // @Success 200 {object} models.BookResponse
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /books/{id} [get]
-
 func (h *BookHandler) FetchBookByID(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
 	if err != nil {
@@ -135,10 +135,9 @@ func (h *BookHandler) FetchBookByID(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param request body CreateBookRequest true "Book details"
 // @Success 201 {object} models.BookResponse
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /books [post]
-
 func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 	var req CreateBookRequest
 
@@ -183,10 +182,10 @@ func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Book ID"
-// @Success 204 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Success 204 "Book deleted successfully"
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /books/{id} [delete]
 func (h *BookHandler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
@@ -208,7 +207,7 @@ func (h *BookHandler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusNoContent, nil)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // UpdateBook godoc
@@ -220,9 +219,9 @@ func (h *BookHandler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 // @Param id path int true "Book ID"
 // @Param request body UpdateBookRequest true "Book details"
 // @Success 200 {object} models.BookResponse
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /books/{id} [put]
 func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
@@ -270,15 +269,15 @@ func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 // BorrowBook godoc
 // @Summary Borrow a book
 // @Description Borrow a book by its ID
-// @Tags books
+// @Tags borrowing
 // @Accept json
 // @Produce json
 // @Param request body BorrowBookRequest true "Borrow details"
 // @Success 200 {object} models.BorrowRecordResponse
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 409 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 409 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /books/borrow [post]
 func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 	var req BorrowBookRequest
@@ -364,14 +363,14 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 // ReturnBook godoc
 // @Summary Return a book
 // @Description Return a book by its ID
-// @Tags books
+// @Tags borrowing
 // @Accept json
 // @Produce json
 // @Param request body ReturnBookRequest true "Return details"
 // @Success 200 {object} models.ReturnRecordResponse
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /books/return [post]
 func (h *BookHandler) ReturnBook(w http.ResponseWriter, r *http.Request) {
 	var req ReturnBookRequest
@@ -428,14 +427,13 @@ func (h *BookHandler) ReturnBook(w http.ResponseWriter, r *http.Request) {
 // GetUserBorrowedBooks godoc
 // @Summary Get borrowed books for a user
 // @Description Get all borrowed books for a specific user by their ID
-// @Tags books
+// @Tags borrowing
 // @Accept json
 // @Produce json
 // @Param id path int true "User ID"
 // @Success 200 {array} models.BorrowedBooksRowResponse
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /books/user/{id}/borrowed [get]
 func (h *BookHandler) GetUserBorrowedBooks(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
@@ -461,11 +459,11 @@ func (h *BookHandler) GetUserBorrowedBooks(w http.ResponseWriter, r *http.Reques
 // GetOverdueBooks godoc
 // @Summary Get overdue books
 // @Description Get all overdue books
-// @Tags books
+// @Tags borrowing
 // @Accept json
 // @Produce json
 // @Success 200 {array} models.OverdueBooksRowResponse
-// @Failure 500 {object} map[string]string
+// @Failure 500 {object} models.ErrorResponse
 // @Router /books/overdue [get]
 func (h *BookHandler) GetOverdueBooks(w http.ResponseWriter, r *http.Request) {
 	books, err := h.queries.GetOverdueBooks(r.Context())

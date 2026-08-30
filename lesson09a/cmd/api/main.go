@@ -8,6 +8,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -64,5 +67,33 @@ func main() {
 	r.Mount("/users", userhandler.Routes())
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
-	log.Fatal(http.ListenAndServe(":3000", r))
+	srv := &http.Server{
+		Addr:              ":3000",
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	go func() {
+		log.Println("Server is running on port 3000")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("Graceful shutdown failed %v:", err)
+		if err := srv.Close(); err != nil {
+			log.Fatalf("Unable to close server: %v", err)
+		}
+	}
+
+	log.Println("Server stopped")
 }

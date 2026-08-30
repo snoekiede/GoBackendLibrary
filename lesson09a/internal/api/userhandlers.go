@@ -43,10 +43,10 @@ func (u UpdateUserRequest) Validate() error {
 }
 
 type UserHandler struct {
-	db QuerierWithTx
+	db db.Querier
 }
 
-func NewUserHandler(db QuerierWithTx) *UserHandler {
+func NewUserHandler(db db.Querier) *UserHandler {
 	return &UserHandler{db: db}
 }
 
@@ -58,9 +58,9 @@ func NewUserHandler(db QuerierWithTx) *UserHandler {
 // @Produce json
 // @Param request body CreateUserRequest true "User details"
 // @Success 201 {object} models.UserResponse
-// @Failure 400 {object} map[string]string
-// @Failure 409 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 409 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /users [post]
 func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var req CreateUserRequest
@@ -99,7 +99,7 @@ func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Success 200 {array} models.UserResponse
-// @Failure 500 {object} map[string]string
+// @Failure 500 {object} models.ErrorResponse
 // @Router /users [get]
 func (handler *UserHandler) FetchAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := handler.db.ListUsers(r.Context())
@@ -125,9 +125,9 @@ func (handler *UserHandler) FetchAllUsers(w http.ResponseWriter, r *http.Request
 // @Produce json
 // @Param id path int true "User ID"
 // @Success 200 {object} models.UserResponse
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /users/{id} [get]
 func (handler *UserHandler) FetchUserById(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
@@ -160,9 +160,9 @@ func (handler *UserHandler) FetchUserById(w http.ResponseWriter, r *http.Request
 // @Param id path int true "User ID"
 // @Param request body UpdateUserRequest true "Updated user details"
 // @Success 200 {object} models.UserResponse
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /users/{id} [put]
 func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
@@ -211,10 +211,10 @@ func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path int true "User ID"
-// @Success 204 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Success 204 "User deleted successfully"
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /users/{id} [delete]
 func (handler *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
@@ -246,9 +246,8 @@ func (handler *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path int true "User ID"
 // @Success 200 {array} models.HistoryRowResponse
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /users/{id}/history [get]
 func (handler *UserHandler) BorrowHistory(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
