@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -13,5 +14,6 @@ func main() {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello World"))
 	})
-	http.ListenAndServe(":3000", r)
+	log.Println("Starting server on :3000")
+	log.Fatal(http.ListenAndServe(":3000", r))
 }

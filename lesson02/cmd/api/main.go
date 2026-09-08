@@ -42,7 +42,7 @@ func main() {
 		Title:  "The Go Programming Language",
 		Author: "Alan Donovan",
 		Description: pgtype.Text{
-			String: "A comprehensive guide to Go",
+			String: "A very comprehensive guide to Go",
 			Valid:  true,
 		},
 		YearOfPublication: pgtype.Int4{
