@@ -66,8 +66,22 @@ func main() {
 	r.Mount("/books", bookhandler.Routes())
 	r.Mount("/users", userhandler.Routes())
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
+	r.Get("/health/live", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK"))
+	})
+
+	r.Get("/health/ready", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+
+		defer cancel()
+
+		if err := pool.Ping(ctx); err != nil {
+			http.Error(w, "NOT READY", http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	srv := &http.Server{

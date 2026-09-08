@@ -13,9 +13,10 @@ spec:
       labels:
         app: bookstore-api
     spec:
+      terminationGracePeriodSeconds: 35
       containers:
       - name: api
-        image: <your dockerhub username>/bookstore-api:latest
+        image: iedesnoek/bookstore-api:1.0.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
@@ -23,18 +24,15 @@ spec:
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
-              name: postgres-secret
+              name: postgres-secrets
               key: DATABASE_URL
         livenessProbe:
           httpGet:
-            path: /health
+            path: /health/live
             port: 3000
-          initialDelaySeconds: 30
-          periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /health
+            path: /health/ready
             port: 3000
-          initialDelaySeconds: 10
-          periodSeconds: 5
+
 

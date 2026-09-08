@@ -8,23 +8,39 @@ spec:
     spec:
       restartPolicy: OnFailure
       initContainers:
-        - name: wait-for-postgres
-          image: postgres:18-alpine
-          command:
-            - sh
-            - -c
-            - |
-              until pg_isready -h postgres-service -p 5432 -U postgres -d gobooksnew; do
-                echo waiting for postgres
-                sleep 2
-              done
+      - name: wait-for-postgres
+        image: postgres:18-alpine
+        env:
+          - name: PGHOST
+            value: postgres-service
+          - name: PGPORT
+            value: "5432"
+          - name: PGUSER
+            valueFrom: { secretKeyRef: { name: postgres-secrets, key: POSTGRES_USER } }
+          - name: PGPASSWORD
+            valueFrom: { secretKeyRef: { name: postgres-secrets, key: POSTGRES_PASSWORD } }
+          - name: PGDATABASE
+            valueFrom: { secretKeyRef: { name: postgres-secrets, key: POSTGRES_DB } }
+        command: ["sh", "-c"]
+        args:
+          - |
+            until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE"; do
+            echo "Waiting for postgres..."
+            sleep 2
+            done
       containers:
         - name: migrate
-          image: <your dockerhub username>/bookstore-migrate:latest
-          imagePullPolicy: IfNotPresent
-          command:
-            - goose
+          image: iedesnoek/bookstore-migrate:1.0.0
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: DATABASE_URL
+
+          args:
+            - -dir
+            - /migrations
             - postgres
-            - postgres://postgres:password@postgres-service:5432/gobooksnew?sslmode=disable
+            - $(DATABASE_URL)
             - up
-  backoffLimit: 4
