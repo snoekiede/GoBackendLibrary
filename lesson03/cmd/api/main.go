@@ -46,8 +46,8 @@ func main() {
 		w.Write([]byte("Hello World"))
 	})
 	addBookRoutes(r, bookhandler)
-
-	http.ListenAndServe(":3000", r)
+	log.Println("Starting server on :3000")
+	log.Fatal(http.ListenAndServe(":3000", r))
 }
 
 func addBookRoutes(router *chi.Mux, bookhandler *api.BookHandler) {
