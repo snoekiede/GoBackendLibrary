@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -58,6 +59,34 @@ type BorrowBookRequest struct {
 type ReturnBookRequest struct {
 	BookID int32 `json:"book_id"`
 	UserID int32 `json:"user_id"`
+}
+
+func (r BorrowBookRequest) Validate() error {
+	if r.BookID <= 0 {
+		return errors.New("book_id must be a positive integer")
+	}
+
+	if r.UserID <= 0 {
+		return errors.New("user_id must be a positive integer")
+	}
+
+	if r.Days < 0 {
+		return errors.New("days cannot be negative")
+	}
+
+	return nil
+}
+
+func (r ReturnBookRequest) Validate() error {
+	if r.BookID <= 0 {
+		return errors.New("book_id must be a positive integer")
+	}
+
+	if r.UserID <= 0 {
+		return errors.New("user_id must be a positive integer")
+	}
+
+	return nil
 }
 
 type BookHandler struct {
@@ -216,6 +245,11 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	if req.Days == 0 {
 		req.Days = 14
 	}
@@ -263,10 +297,16 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 	borrowRecord, err := qtx.BorrowBook(r.Context(), db.BorrowBookParams{
 		BookID:  req.BookID,
 		UserID:  req.UserID,
-		DueDate: pgtype.Timestamp{Time: dueDate, Valid: true},
+		DueDate: pgtype.Timestamptz{Time: dueDate, Valid: true},
 	})
 
 	if err != nil {
+		var pgErr *pgconn.PgError
+
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "idx_one_active_borrow_per_book" {
+			writeError(w, http.StatusConflict, "Book is not available for borrowing")
+			return
+		}
 		log.Printf("Unable to borrow book: %v", err)
 		writeError(w, http.StatusInternalServerError, "Internal server error")
 		return
@@ -297,6 +337,12 @@ func (h *BookHandler) ReturnBook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
+
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	tx, err := h.pool.BeginTx(r.Context(), pgx.TxOptions{})
 	if err != nil {
 		log.Printf("Unable to start transaction: %v", err)

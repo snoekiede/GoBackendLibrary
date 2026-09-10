@@ -42,11 +42,11 @@ func (u UpdateUserRequest) Validate() error {
 }
 
 type UserHandler struct {
-	db db.Querier
+	queries db.Querier
 }
 
-func NewUserHandler(db db.Querier) *UserHandler {
-	return &UserHandler{db: db}
+func NewUserHandler(queries db.Querier) *UserHandler {
+	return &UserHandler{queries: queries}
 }
 
 func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +61,7 @@ func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	user, err := handler.db.CreateUser(r.Context(), db.CreateUserParams{
+	user, err := handler.queries.CreateUser(r.Context(), db.CreateUserParams{
 		Name:  req.Name,
 		Email: req.Email,
 	})
@@ -75,7 +75,7 @@ func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *UserHandler) FetchAllUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := handler.db.ListUsers(r.Context())
+	users, err := handler.queries.ListUsers(r.Context())
 	if err != nil {
 		log.Printf("Error fetching users: %v", err)
 		writeError(w, http.StatusInternalServerError, "Failed to fetch users")
@@ -98,7 +98,7 @@ func (handler *UserHandler) FetchUserById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	user, err := handler.db.GetUser(r.Context(), id)
+	user, err := handler.queries.GetUser(r.Context(), id)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -132,7 +132,7 @@ func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Update the user
-	user, err := handler.db.UpdateUser(r.Context(), db.UpdateUserParams{
+	user, err := handler.queries.UpdateUser(r.Context(), db.UpdateUserParams{
 		ID:    id,
 		Name:  req.Name,
 		Email: req.Email,
@@ -159,7 +159,7 @@ func (handler *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = handler.db.DeleteUser(r.Context(), id)
+	_, err = handler.queries.DeleteUser(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "User not found")

@@ -54,6 +54,34 @@ type BorrowBookRequest struct {
 	Days   int32 `json:"days"`
 }
 
+func (r BorrowBookRequest) Validate() error {
+	if r.BookID <= 0 {
+		return errors.New("book_id must be a positive integer")
+	}
+
+	if r.UserID <= 0 {
+		return errors.New("user_id must be a positive integer")
+	}
+
+	if r.Days < 0 {
+		return errors.New("days cannot be negative")
+	}
+
+	return nil
+}
+
+func (r ReturnBookRequest) Validate() error {
+	if r.BookID <= 0 {
+		return errors.New("book_id must be a positive integer")
+	}
+
+	if r.UserID <= 0 {
+		return errors.New("user_id must be a positive integer")
+	}
+
+	return nil
+}
+
 type ReturnBookRequest struct {
 	BookID int32 `json:"book_id"`
 	UserID int32 `json:"user_id"`
@@ -211,7 +239,10 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if req.Days == 0 {
 		req.Days = 14
 	}
@@ -250,7 +281,7 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 	borrowRecord, err := h.queries.BorrowBook(r.Context(), db.BorrowBookParams{
 		BookID:  req.BookID,
 		UserID:  req.UserID,
-		DueDate: pgtype.Timestamp{Time: dueDate, Valid: true},
+		DueDate: pgtype.Timestamptz{Time: dueDate, Valid: true},
 	})
 
 	if err != nil {
@@ -276,6 +307,11 @@ func (h *BookHandler) ReturnBook(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("Unable to decode request body: %v", err)
 		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
