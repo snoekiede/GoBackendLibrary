@@ -17,12 +17,12 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
-	httpSwagger "github.com/swaggo/http-swagger"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // @title Library API
 // @version 1.0
-// @description API for managing a book store with borrowing functionality
+// @description API for managing a library with borrowing functionality
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name API Support
@@ -32,7 +32,6 @@ import (
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
 // @BasePath /
-// @schemes http
 func main() {
 	//get the connection from an environment variable
 
@@ -89,7 +88,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf("Graceful shutdown failed %v:", err)
+		log.Printf("Graceful shutdown failed: %v", err)
 		if err := srv.Close(); err != nil {
 			log.Fatalf("Unable to close server: %v", err)
 		}
