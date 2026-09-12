@@ -376,9 +376,9 @@ func TestGetUserBorrowedBooks(t *testing.T) {
 					UserID:     1,
 					Title:      "Book 1",
 					Author:     "Author 1",
-					BorrowedAt: pgtype.Timestamp{Time: time.Now(), Valid: true},
-					DueDate:    pgtype.Timestamp{Time: time.Now().Add(14 * 24 * time.Hour), Valid: true},
-					ReturnedAt: pgtype.Timestamp{Valid: false},
+					BorrowedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
+					DueDate:    pgtype.Timestamptz{Time: time.Now().Add(14 * 24 * time.Hour), Valid: true},
+					ReturnedAt: pgtype.Timestamptz{Valid: false},
 				},
 				{
 					ID:         2,
@@ -386,9 +386,9 @@ func TestGetUserBorrowedBooks(t *testing.T) {
 					UserID:     1,
 					Title:      "Book 2",
 					Author:     "Author 2",
-					BorrowedAt: pgtype.Timestamp{Time: time.Now().Add(-30 * 24 * time.Hour), Valid: true},
-					DueDate:    pgtype.Timestamp{Time: time.Now().Add(-16 * 24 * time.Hour), Valid: true},
-					ReturnedAt: pgtype.Timestamp{Valid: false},
+					BorrowedAt: pgtype.Timestamptz{Time: time.Now().Add(-30 * 24 * time.Hour), Valid: true},
+					DueDate:    pgtype.Timestamptz{Time: time.Now().Add(-16 * 24 * time.Hour), Valid: true},
+					ReturnedAt: pgtype.Timestamptz{Valid: false},
 				},
 			},
 			expectedStatus: http.StatusOK,
@@ -474,9 +474,9 @@ func TestGetOverdueBooks(t *testing.T) {
 					Author:     "Author 1",
 					Name:       "John Doe",
 					Email:      "john@example.com",
-					BorrowedAt: pgtype.Timestamp{Time: time.Now().Add(-30 * 24 * time.Hour), Valid: true},
-					DueDate:    pgtype.Timestamp{Time: time.Now().Add(-2 * 24 * time.Hour), Valid: true},
-					ReturnedAt: pgtype.Timestamp{Valid: false},
+					BorrowedAt: pgtype.Timestamptz{Time: time.Now().Add(-30 * 24 * time.Hour), Valid: true},
+					DueDate:    pgtype.Timestamptz{Time: time.Now().Add(-2 * 24 * time.Hour), Valid: true},
+					ReturnedAt: pgtype.Timestamptz{Valid: false},
 				},
 				{
 					ID:         2,
@@ -486,9 +486,9 @@ func TestGetOverdueBooks(t *testing.T) {
 					Author:     "Author 2",
 					Name:       "Jane Smith",
 					Email:      "jane@example.com",
-					BorrowedAt: pgtype.Timestamp{Time: time.Now().Add(-45 * 24 * time.Hour), Valid: true},
-					DueDate:    pgtype.Timestamp{Time: time.Now().Add(-10 * 24 * time.Hour), Valid: true},
-					ReturnedAt: pgtype.Timestamp{Valid: false},
+					BorrowedAt: pgtype.Timestamptz{Time: time.Now().Add(-45 * 24 * time.Hour), Valid: true},
+					DueDate:    pgtype.Timestamptz{Time: time.Now().Add(-10 * 24 * time.Hour), Valid: true},
+					ReturnedAt: pgtype.Timestamptz{Valid: false},
 				},
 			},
 			expectedStatus: http.StatusOK,
@@ -547,6 +547,110 @@ func TestGetOverdueBooks(t *testing.T) {
 						t.Errorf("expected user name %s, got %s", tt.mockBooks[0].Name, books[0].Name)
 					}
 				}
+			}
+		})
+	}
+}
+
+func TestBorrowBookValidation(t *testing.T) {
+	tests := []struct {
+		name string
+		body BorrowBookRequest
+	}{
+		{
+			name: "invalid book id",
+			body: BorrowBookRequest{
+				BookID: 0,
+				UserID: 1,
+				Days:   14,
+			},
+		},
+		{
+			name: "invalid user id",
+			body: BorrowBookRequest{
+				BookID: 1,
+				UserID: 0,
+				Days:   14,
+			},
+		},
+		{
+			name: "negative borrowing period",
+			body: BorrowBookRequest{
+				BookID: 1,
+				UserID: 1,
+				Days:   -1,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockDB := &MockQueries{}
+			handler := NewBookHandler(mockDB, nil)
+
+			body, _ := json.Marshal(tt.body)
+			req := httptest.NewRequest(
+				http.MethodPost,
+				"/books/borrow",
+				bytes.NewReader(body),
+			)
+			rr := httptest.NewRecorder()
+
+			handler.BorrowBook(rr, req)
+
+			if rr.Code != http.StatusBadRequest {
+				t.Errorf(
+					"expected status %d, got %d",
+					http.StatusBadRequest,
+					rr.Code,
+				)
+			}
+		})
+	}
+}
+
+func TestReturnBookValidation(t *testing.T) {
+	tests := []struct {
+		name string
+		body ReturnBookRequest
+	}{
+		{
+			name: "invalid book id",
+			body: ReturnBookRequest{
+				BookID: 0,
+				UserID: 1,
+			},
+		},
+		{
+			name: "invalid user id",
+			body: ReturnBookRequest{
+				BookID: 1,
+				UserID: 0,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockDB := &MockQueries{}
+			handler := NewBookHandler(mockDB, nil)
+
+			body, _ := json.Marshal(tt.body)
+			req := httptest.NewRequest(
+				http.MethodPost,
+				"/books/return",
+				bytes.NewReader(body),
+			)
+			rr := httptest.NewRecorder()
+
+			handler.ReturnBook(rr, req)
+
+			if rr.Code != http.StatusBadRequest {
+				t.Errorf(
+					"expected status %d, got %d",
+					http.StatusBadRequest,
+					rr.Code,
+				)
 			}
 		})
 	}

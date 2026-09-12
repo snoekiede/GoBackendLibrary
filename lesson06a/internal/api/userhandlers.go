@@ -43,10 +43,10 @@ func (u UpdateUserRequest) Validate() error {
 }
 
 type UserHandler struct {
-	queries QuerierWithTx
+	queries db.Querier
 }
 
-func NewUserHandler(queries QuerierWithTx) *UserHandler {
+func NewUserHandler(queries db.Querier) *UserHandler {
 	return &UserHandler{queries: queries}
 }
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "bookbackend/docs"
 	"bookbackend/internal/api"
 	db "bookbackend/internal/database"
 	"context"
@@ -11,6 +10,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	_ "bookbackend/docs"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -30,7 +31,6 @@ import (
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host localhost:3000
 // @BasePath /
 // @schemes http
 func main() {

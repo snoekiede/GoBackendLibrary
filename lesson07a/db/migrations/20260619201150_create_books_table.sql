@@ -6,8 +6,8 @@ CREATE TABLE books (
     author VARCHAR(255) NOT NULL,
     description TEXT,
     year_of_publication INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 -- +goose StatementEnd
 

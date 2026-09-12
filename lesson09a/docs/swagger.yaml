@@ -51,6 +51,11 @@ definitions:
       user_id:
         type: integer
     type: object
+  bookbackend_internal_api_models.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
   bookbackend_internal_api_models.HistoryRowResponse:
     properties:
       author:
@@ -112,9 +117,9 @@ definitions:
         type: string
       id:
         type: integer
-      updated_at:
+      name:
         type: string
-      username:
+      updated_at:
         type: string
     type: object
   internal_api.BorrowBookRequest:
@@ -199,9 +204,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: List all books
       tags:
       - books
@@ -226,15 +229,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Create a new book
       tags:
       - books
@@ -253,29 +252,19 @@ paths:
       - application/json
       responses:
         "204":
-          description: No Content
-          schema:
-            additionalProperties:
-              type: string
-            type: object
+          description: Book deleted successfully
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Delete a book
       tags:
       - books
@@ -296,18 +285,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/bookbackend_internal_api_models.BookResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Get a book by ID
       tags:
       - books
@@ -337,21 +326,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Update a book
       tags:
       - books
@@ -377,30 +360,22 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Borrow a book
       tags:
-      - books
+      - borrowing
   /books/overdue:
     get:
       consumes:
@@ -418,12 +393,10 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Get overdue books
       tags:
-      - books
+      - borrowing
   /books/return:
     post:
       consumes:
@@ -446,24 +419,18 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Return a book
       tags:
-      - books
+      - borrowing
   /books/user/{id}/borrowed:
     get:
       consumes:
@@ -487,24 +454,14 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Get borrowed books for a user
       tags:
-      - books
+      - borrowing
   /users:
     get:
       consumes:
@@ -522,9 +479,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: List all users
       tags:
       - users
@@ -549,21 +504,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Create a new user
       tags:
       - users
@@ -582,29 +531,19 @@ paths:
       - application/json
       responses:
         "204":
-          description: No Content
-          schema:
-            additionalProperties:
-              type: string
-            type: object
+          description: User deleted successfully
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Delete a user by ID
       tags:
       - users
@@ -628,21 +567,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Get a user by ID
       tags:
       - users
@@ -672,21 +605,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Update a user by ID
       tags:
       - users
@@ -713,21 +640,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
       summary: Get a user's borrow history
       tags:
       - users

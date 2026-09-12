@@ -10,23 +10,22 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type MockUserQueries struct {
 	db.Querier
-	CreateUserFunc func(ctx context.Context, params db.CreateUserParams) (db.User, error)
-	ListUsersFunc  func(ctx context.Context) ([]db.User, error)
-	GetUserFunc    func(ctx context.Context, id int32) (db.User, error)
-	UpdateUserFunc func(ctx context.Context, params db.UpdateUserParams) (db.User, error)
-	DeleteUserFunc func(ctx context.Context, id int32) (int32, error)
-}
-
-func (m *MockUserQueries) WithTx(tx pgx.Tx) *db.Queries {
-	return db.New(tx)
+	CreateUserFunc           func(ctx context.Context, params db.CreateUserParams) (db.User, error)
+	ListUsersFunc            func(ctx context.Context) ([]db.User, error)
+	GetUserFunc              func(ctx context.Context, id int32) (db.User, error)
+	UpdateUserFunc           func(ctx context.Context, params db.UpdateUserParams) (db.User, error)
+	DeleteUserFunc           func(ctx context.Context, id int32) (int32, error)
+	GetUserBorrowHistoryFunc func(ctx context.Context, userID int32) ([]db.GetUserBorrowHistoryRow, error)
 }
 
 func (m *MockUserQueries) CreateUser(ctx context.Context, params db.CreateUserParams) (db.User, error) {
@@ -62,6 +61,13 @@ func (m *MockUserQueries) DeleteUser(ctx context.Context, id int32) (int32, erro
 		return m.DeleteUserFunc(ctx, id)
 	}
 	return 0, nil
+}
+
+func (m *MockUserQueries) GetUserBorrowHistory(ctx context.Context, userID int32) ([]db.GetUserBorrowHistoryRow, error) {
+	if m.GetUserBorrowHistoryFunc != nil {
+		return m.GetUserBorrowHistoryFunc(ctx, userID)
+	}
+	return []db.GetUserBorrowHistoryRow{}, nil
 }
 
 func TestCreateUser(t *testing.T) {
@@ -173,8 +179,8 @@ func TestCreateUser(t *testing.T) {
 				if user.Email != tt.mockResponse.Email {
 					t.Errorf("expected email %s, got %s", tt.mockResponse.Email, user.Email)
 				}
-				if user.Username != tt.mockResponse.Name {
-					t.Errorf("expected name %s, got %s", tt.mockResponse.Name, user.Username)
+				if user.Name != tt.mockResponse.Name {
+					t.Errorf("expected name %s, got %s", tt.mockResponse.Name, user.Name)
 				}
 			}
 		})
@@ -432,8 +438,8 @@ func TestUpdateUser(t *testing.T) {
 				if err := json.Unmarshal(rr.Body.Bytes(), &user); err != nil {
 					t.Fatalf("failed to unmarshal response: %v", err)
 				}
-				if user.Username != tt.updateResponse.Name {
-					t.Errorf("expected name %s, got %s", tt.updateResponse.Name, user.Username)
+				if user.Name != tt.updateResponse.Name {
+					t.Errorf("expected name %s, got %s", tt.updateResponse.Name, user.Name)
 				}
 			}
 		})
@@ -512,6 +518,111 @@ func TestDeleteUser(t *testing.T) {
 
 			if rr.Code != tt.expectedStatus {
 				t.Errorf("expected status %d, got %d", tt.expectedStatus, rr.Code)
+			}
+		})
+	}
+}
+
+func TestBorrowHistory(t *testing.T) {
+	tests := []struct {
+		name           string
+		userID         string
+		mockBooks      []db.GetUserBorrowHistoryRow
+		mockError      error
+		expectedStatus int
+		expectedCount  int
+	}{
+		{
+			name:   "fetch borrow history",
+			userID: "1",
+			mockBooks: []db.GetUserBorrowHistoryRow{
+				{
+					ID:         1,
+					BookID:     1,
+					UserID:     1,
+					Title:      "Book 1",
+					Author:     "Author 1",
+					BorrowedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
+					DueDate:    pgtype.Timestamptz{Time: time.Now().Add(14 * 24 * time.Hour), Valid: true},
+					ReturnedAt: pgtype.Timestamptz{Valid: false},
+				},
+				{
+					ID:         2,
+					BookID:     2,
+					UserID:     1,
+					Title:      "Book 2",
+					Author:     "Author 2",
+					BorrowedAt: pgtype.Timestamptz{Time: time.Now().Add(-30 * 24 * time.Hour), Valid: true},
+					DueDate:    pgtype.Timestamptz{Time: time.Now().Add(-16 * 24 * time.Hour), Valid: true},
+					ReturnedAt: pgtype.Timestamptz{Time: time.Now().Add(-10 * 24 * time.Hour), Valid: true},
+				},
+			},
+			expectedStatus: http.StatusOK,
+			expectedCount:  2,
+		},
+		{
+			name:           "no borrow history",
+			userID:         "1",
+			mockBooks:      []db.GetUserBorrowHistoryRow{},
+			expectedStatus: http.StatusOK,
+			expectedCount:  0,
+		},
+		{
+			name:           "invalid user ID",
+			userID:         "invalid",
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "database error",
+			userID:         "1",
+			mockError:      errors.New("database error"),
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockDB := &MockUserQueries{
+				GetUserBorrowHistoryFunc: func(ctx context.Context, userID int32) ([]db.GetUserBorrowHistoryRow, error) {
+					if tt.mockError != nil {
+						return nil, tt.mockError
+					}
+					return tt.mockBooks, nil
+				},
+			}
+
+			handler := NewUserHandler(mockDB)
+			req := httptest.NewRequest(http.MethodGet, "/users/"+tt.userID+"/history", nil)
+			rr := httptest.NewRecorder()
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("id", tt.userID)
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+			handler.BorrowHistory(rr, req)
+
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("expected status %d, got %d", tt.expectedStatus, rr.Code)
+			}
+
+			if tt.expectedStatus == http.StatusOK {
+				var history []models.HistoryRowResponse
+				if err := json.Unmarshal(rr.Body.Bytes(), &history); err != nil {
+					t.Fatalf("failed to unmarshal response: %v", err)
+				}
+
+				if len(history) != tt.expectedCount {
+					t.Errorf("expected %d history records, got %d", tt.expectedCount, len(history))
+				}
+
+				if len(history) == 2 {
+					if history[0].ReturnedAt != nil {
+						t.Error("expected first book ReturnedAt to be non-nil")
+					}
+					if history[1].ReturnedAt == nil {
+						t.Error("expected second book ReturnedAt to be nil")
+					}
+				}
 			}
 		})
 	}
