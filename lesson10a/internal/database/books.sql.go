@@ -49,7 +49,7 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 const deleteBook = `-- name: DeleteBook :one
 UPDATE books
 SET deleted_at = CURRENT_TIMESTAMP
-WHERE id = $1
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING id
 `
 
@@ -84,7 +84,7 @@ func (q *Queries) GetBook(ctx context.Context, id int32) (Book, error) {
 
 const getBookForUpdate = `-- name: GetBookForUpdate :one
 SELECT id, title, author, description, year_of_publication, created_at, updated_at, available, deleted_at FROM books
-WHERE id = $1
+WHERE id = $1 AND deleted_at IS NULL
 FOR UPDATE
 `
 
@@ -216,7 +216,7 @@ func (q *Queries) SearchBooksByTitle(ctx context.Context, dollar_1 pgtype.Text) 
 const updateBook = `-- name: UpdateBook :one
 UPDATE books
 SET title = $2, author = $3, description = $4, year_of_publication = $5, updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING id, title, author, description, year_of_publication, created_at, updated_at, available, deleted_at
 `
 

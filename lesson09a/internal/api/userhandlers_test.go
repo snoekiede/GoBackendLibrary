@@ -617,10 +617,10 @@ func TestBorrowHistory(t *testing.T) {
 
 				if len(history) == 2 {
 					if history[0].ReturnedAt != nil {
-						t.Error("expected first book ReturnedAt to be non-nil")
+						t.Error("expected first book ReturnedAt to be nil")
 					}
 					if history[1].ReturnedAt == nil {
-						t.Error("expected second book ReturnedAt to be nil")
+						t.Error("expected second book ReturnedAt to be non-nil")
 					}
 				}
 			}

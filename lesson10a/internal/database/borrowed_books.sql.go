@@ -18,9 +18,9 @@ RETURNING id, book_id, user_id, borrowed_at, due_date, returned_at
 `
 
 type BorrowBookParams struct {
-	BookID  int32            `json:"book_id"`
-	UserID  int32            `json:"user_id"`
-	DueDate pgtype.Timestamp `json:"due_date"`
+	BookID  int32              `json:"book_id"`
+	UserID  int32              `json:"user_id"`
+	DueDate pgtype.Timestamptz `json:"due_date"`
 }
 
 func (q *Queries) BorrowBook(ctx context.Context, arg BorrowBookParams) (BorrowedBook, error) {
@@ -47,16 +47,16 @@ ORDER BY bb.due_date ASC
 `
 
 type GetOverdueBooksRow struct {
-	ID         int32            `json:"id"`
-	BookID     int32            `json:"book_id"`
-	UserID     int32            `json:"user_id"`
-	BorrowedAt pgtype.Timestamp `json:"borrowed_at"`
-	DueDate    pgtype.Timestamp `json:"due_date"`
-	ReturnedAt pgtype.Timestamp `json:"returned_at"`
-	Title      string           `json:"title"`
-	Author     string           `json:"author"`
-	Name       string           `json:"name"`
-	Email      string           `json:"email"`
+	ID         int32              `json:"id"`
+	BookID     int32              `json:"book_id"`
+	UserID     int32              `json:"user_id"`
+	BorrowedAt pgtype.Timestamptz `json:"borrowed_at"`
+	DueDate    pgtype.Timestamptz `json:"due_date"`
+	ReturnedAt pgtype.Timestamptz `json:"returned_at"`
+	Title      string             `json:"title"`
+	Author     string             `json:"author"`
+	Name       string             `json:"name"`
+	Email      string             `json:"email"`
 }
 
 func (q *Queries) GetOverdueBooks(ctx context.Context) ([]GetOverdueBooksRow, error) {
@@ -99,14 +99,14 @@ ORDER BY bb.borrowed_at DESC
 `
 
 type GetUserBorrowHistoryRow struct {
-	ID         int32            `json:"id"`
-	BookID     int32            `json:"book_id"`
-	UserID     int32            `json:"user_id"`
-	BorrowedAt pgtype.Timestamp `json:"borrowed_at"`
-	DueDate    pgtype.Timestamp `json:"due_date"`
-	ReturnedAt pgtype.Timestamp `json:"returned_at"`
-	Title      string           `json:"title"`
-	Author     string           `json:"author"`
+	ID         int32              `json:"id"`
+	BookID     int32              `json:"book_id"`
+	UserID     int32              `json:"user_id"`
+	BorrowedAt pgtype.Timestamptz `json:"borrowed_at"`
+	DueDate    pgtype.Timestamptz `json:"due_date"`
+	ReturnedAt pgtype.Timestamptz `json:"returned_at"`
+	Title      string             `json:"title"`
+	Author     string             `json:"author"`
 }
 
 func (q *Queries) GetUserBorrowHistory(ctx context.Context, userID int32) ([]GetUserBorrowHistoryRow, error) {
@@ -147,14 +147,14 @@ ORDER BY bb.borrowed_at DESC
 `
 
 type GetUserBorrowedBooksRow struct {
-	ID         int32            `json:"id"`
-	BookID     int32            `json:"book_id"`
-	UserID     int32            `json:"user_id"`
-	BorrowedAt pgtype.Timestamp `json:"borrowed_at"`
-	DueDate    pgtype.Timestamp `json:"due_date"`
-	ReturnedAt pgtype.Timestamp `json:"returned_at"`
-	Title      string           `json:"title"`
-	Author     string           `json:"author"`
+	ID         int32              `json:"id"`
+	BookID     int32              `json:"book_id"`
+	UserID     int32              `json:"user_id"`
+	BorrowedAt pgtype.Timestamptz `json:"borrowed_at"`
+	DueDate    pgtype.Timestamptz `json:"due_date"`
+	ReturnedAt pgtype.Timestamptz `json:"returned_at"`
+	Title      string             `json:"title"`
+	Author     string             `json:"author"`
 }
 
 func (q *Queries) GetUserBorrowedBooks(ctx context.Context, userID int32) ([]GetUserBorrowedBooksRow, error) {
