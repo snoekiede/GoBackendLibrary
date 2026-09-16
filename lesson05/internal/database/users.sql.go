@@ -33,14 +33,17 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const deleteUser = `-- name: DeleteUser :exec
+const deleteUser = `-- name: DeleteUser :one
 DELETE FROM users
 WHERE id = $1
+RETURNING id
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteUser, id)
-	return err
+func (q *Queries) DeleteUser(ctx context.Context, id int32) (int32, error) {
+	row := q.db.QueryRow(ctx, deleteUser, id)
+	var id_2 int32
+	err := row.Scan(&id_2)
+	return id_2, err
 }
 
 const getUser = `-- name: GetUser :one

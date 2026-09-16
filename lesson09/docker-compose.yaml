@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: deployment/Dockerfile.migrate
     volumes:
-      - ./db/migrations:/migrations
+      - ./db/migrations:/migrations:ro
     command: ["postgres", "postgres://postgres:password@db:5432/gobooksnew?sslmode=disable", "up"]
     depends_on:
       db:

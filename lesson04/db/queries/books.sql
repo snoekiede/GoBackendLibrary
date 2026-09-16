@@ -18,9 +18,10 @@ SET title = $2, author = $3, description = $4, year_of_publication = $5, updated
 WHERE id = $1
 RETURNING *;
 
--- name: DeleteBook :exec
+-- name: DeleteBook :one
 DELETE FROM books
-WHERE id = $1;
+WHERE id = $1
+RETURNING id;
 
 -- name: SearchBooksByTitle :many
 SELECT * FROM books

@@ -25,7 +25,7 @@ const docTemplate = `{
     "paths": {
         "/books": {
             "get": {
-                "description": "Get all books from the database",
+                "description": "Get a list of all books in the database",
                 "consumes": [
                     "application/json"
                 ],
@@ -42,17 +42,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/bookbackend_internal_database.Book"
+                                "$ref": "#/definitions/bookbackend_internal_api_models.BookResponse"
                             }
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     }
                 }
@@ -84,25 +81,208 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/bookbackend_internal_database.Book"
+                            "$ref": "#/definitions/bookbackend_internal_api_models.BookResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/books/borrow": {
+            "post": {
+                "description": "Borrow a book by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "borrowing"
+                ],
+                "summary": "Borrow a book",
+                "parameters": [
+                    {
+                        "description": "Borrow details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.BorrowBookRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.BorrowRecordResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/books/overdue": {
+            "get": {
+                "description": "Get all overdue books",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "borrowing"
+                ],
+                "summary": "Get overdue books",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/bookbackend_internal_api_models.OverdueBooksRowResponse"
                             }
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/books/return": {
+            "post": {
+                "description": "Return a book by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "borrowing"
+                ],
+                "summary": "Return a book",
+                "parameters": [
+                    {
+                        "description": "Return details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.ReturnBookRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ReturnRecordResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/books/user/{id}/borrowed": {
+            "get": {
+                "description": "Get all borrowed books for a specific user by their ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "borrowing"
+                ],
+                "summary": "Get borrowed books for a user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/bookbackend_internal_api_models.BorrowedBooksRowResponse"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     }
                 }
@@ -134,16 +314,82 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/bookbackend_internal_database.Book"
+                            "$ref": "#/definitions/bookbackend_internal_api_models.BookResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update a book by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "books"
+                ],
+                "summary": "Update a book",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Book ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Book details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_api.UpdateBookRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.BookResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     }
                 }
@@ -171,201 +417,24 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "Book deleted successfully"
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/borrow": {
-            "post": {
-                "description": "Borrow a book for a specified number of days",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "borrowing"
-                ],
-                "summary": "Borrow a book",
-                "parameters": [
-                    {
-                        "description": "Borrow details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_api.BorrowBookRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/overdue": {
-            "get": {
-                "description": "Get all books that are overdue for return",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "borrowing"
-                ],
-                "summary": "Get overdue books",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/bookbackend_internal_database.GetOverdueBooksRow"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/return": {
-            "post": {
-                "description": "Return a book that was previously borrowed",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "borrowing"
-                ],
-                "summary": "Return a borrowed book",
-                "parameters": [
-                    {
-                        "description": "Return details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_api.ReturnBookRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     }
                 }
@@ -373,7 +442,7 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
-                "description": "Get all users from the database",
+                "description": "Get a list of all users in the database",
                 "consumes": [
                     "application/json"
                 ],
@@ -390,23 +459,20 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/bookbackend_internal_database.User"
+                                "$ref": "#/definitions/bookbackend_internal_api_models.UserResponse"
                             }
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     }
                 }
             },
             "post": {
-                "description": "Add a new user to the database",
+                "description": "Create a new user with the provided details",
                 "consumes": [
                     "application/json"
                 ],
@@ -420,7 +486,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "User details",
-                        "name": "user",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -432,25 +498,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/bookbackend_internal_database.User"
+                            "$ref": "#/definitions/bookbackend_internal_api_models.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     }
                 }
@@ -458,7 +524,7 @@ const docTemplate = `{
         },
         "/users/{id}": {
             "get": {
-                "description": "Get a single user by their ID",
+                "description": "Get a single user by its ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -482,40 +548,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/bookbackend_internal_database.User"
+                            "$ref": "#/definitions/bookbackend_internal_api_models.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     }
                 }
             },
             "put": {
-                "description": "Update user information by ID",
+                "description": "Update a user's details by its ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -525,7 +582,7 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Update a user",
+                "summary": "Update a user by ID",
                 "parameters": [
                     {
                         "type": "integer",
@@ -536,7 +593,7 @@ const docTemplate = `{
                     },
                     {
                         "description": "Updated user details",
-                        "name": "user",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -548,40 +605,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/bookbackend_internal_database.User"
+                            "$ref": "#/definitions/bookbackend_internal_api_models.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Soft delete a user by ID",
+                "description": "Delete a user by its ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -591,7 +639,7 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Delete a user",
+                "summary": "Delete a user by ID",
                 "parameters": [
                     {
                         "type": "integer",
@@ -603,41 +651,32 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "User deleted successfully"
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/users/{id}/borrowed": {
+        "/users/{id}/history": {
             "get": {
-                "description": "Get all books currently borrowed by a specific user",
+                "description": "Get the borrow history of a user by its ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -645,9 +684,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "borrowing"
+                    "users"
                 ],
-                "summary": "Get user's borrowed books",
+                "summary": "Get a user's borrow history",
                 "parameters": [
                     {
                         "type": "integer",
@@ -663,26 +702,20 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/bookbackend_internal_database.GetUserBorrowedBooksRow"
+                                "$ref": "#/definitions/bookbackend_internal_api_models.HistoryRowResponse"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }
                     }
                 }
@@ -690,23 +723,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "bookbackend_internal_database.Book": {
+        "bookbackend_internal_api_models.BookResponse": {
             "type": "object",
             "properties": {
                 "author": {
                     "type": "string"
                 },
-                "available": {
-                    "$ref": "#/definitions/pgtype.Bool"
-                },
                 "created_at": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
-                },
-                "deleted_at": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
+                    "type": "string"
                 },
                 "description": {
-                    "$ref": "#/definitions/pgtype.Text"
+                    "type": "string"
                 },
                 "id": {
                     "type": "integer"
@@ -715,14 +742,37 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
+                    "type": "string"
                 },
                 "year_of_publication": {
-                    "$ref": "#/definitions/pgtype.Int4"
+                    "type": "integer"
                 }
             }
         },
-        "bookbackend_internal_database.GetOverdueBooksRow": {
+        "bookbackend_internal_api_models.BorrowRecordResponse": {
+            "type": "object",
+            "properties": {
+                "book_id": {
+                    "type": "integer"
+                },
+                "borrowed_at": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "returned_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bookbackend_internal_api_models.BorrowedBooksRowResponse": {
             "type": "object",
             "properties": {
                 "author": {
@@ -732,10 +782,76 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "borrowed_at": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
+                    "type": "string"
                 },
                 "due_date": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "returned_at": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bookbackend_internal_api_models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "bookbackend_internal_api_models.HistoryRowResponse": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "book_id": {
+                    "type": "integer"
+                },
+                "borrowed_at": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "returned_at": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bookbackend_internal_api_models.OverdueBooksRowResponse": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "book_id": {
+                    "type": "integer"
+                },
+                "borrowed_at": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
                 },
                 "email": {
                     "type": "string"
@@ -747,7 +863,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "returned_at": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
+                    "type": "string"
                 },
                 "title": {
                     "type": "string"
@@ -757,28 +873,16 @@ const docTemplate = `{
                 }
             }
         },
-        "bookbackend_internal_database.GetUserBorrowedBooksRow": {
+        "bookbackend_internal_api_models.ReturnRecordResponse": {
             "type": "object",
             "properties": {
-                "author": {
-                    "type": "string"
-                },
                 "book_id": {
                     "type": "integer"
-                },
-                "borrowed_at": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
-                },
-                "due_date": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "returned_at": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
-                },
-                "title": {
+                "message": {
                     "type": "string"
                 },
                 "user_id": {
@@ -786,14 +890,11 @@ const docTemplate = `{
                 }
             }
         },
-        "bookbackend_internal_database.User": {
+        "bookbackend_internal_api_models.UserResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
-                },
-                "deleted_at": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
+                    "type": "string"
                 },
                 "email": {
                     "type": "string"
@@ -805,7 +906,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
-                    "$ref": "#/definitions/pgtype.Timestamp"
+                    "type": "string"
                 }
             }
         },
@@ -816,7 +917,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "days": {
-                    "description": "How many days to borrow for",
                     "type": "integer"
                 },
                 "user_id": {
@@ -863,6 +963,23 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_api.UpdateBookRequest": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "year_of_publication": {
+                    "type": "integer"
+                }
+            }
+        },
         "internal_api.UpdateUserRequest": {
             "type": "object",
             "properties": {
@@ -871,69 +988,6 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "pgtype.Bool": {
-            "type": "object",
-            "properties": {
-                "bool": {
-                    "type": "boolean"
-                },
-                "valid": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "pgtype.InfinityModifier": {
-            "type": "integer",
-            "format": "int32",
-            "enum": [
-                1,
-                0,
-                -1
-            ],
-            "x-enum-varnames": [
-                "Infinity",
-                "Finite",
-                "NegativeInfinity"
-            ]
-        },
-        "pgtype.Int4": {
-            "type": "object",
-            "properties": {
-                "int32": {
-                    "type": "integer",
-                    "format": "int32"
-                },
-                "valid": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "pgtype.Text": {
-            "type": "object",
-            "properties": {
-                "string": {
-                    "type": "string"
-                },
-                "valid": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "pgtype.Timestamp": {
-            "type": "object",
-            "properties": {
-                "infinityModifier": {
-                    "$ref": "#/definitions/pgtype.InfinityModifier"
-                },
-                "time": {
-                    "description": "Time zone will be ignored when encoding to PostgreSQL.",
-                    "type": "string"
-                },
-                "valid": {
-                    "type": "boolean"
                 }
             }
         }

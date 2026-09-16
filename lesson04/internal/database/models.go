@@ -9,11 +9,11 @@ import (
 )
 
 type Book struct {
-	ID                int32            `json:"id"`
-	Title             string           `json:"title"`
-	Author            string           `json:"author"`
-	Description       pgtype.Text      `json:"description"`
-	YearOfPublication pgtype.Int4      `json:"year_of_publication"`
-	CreatedAt         pgtype.Timestamp `json:"created_at"`
-	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+	ID                int32              `json:"id"`
+	Title             string             `json:"title"`
+	Author            string             `json:"author"`
+	Description       pgtype.Text        `json:"description"`
+	YearOfPublication pgtype.Int4        `json:"year_of_publication"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
 }

@@ -34,20 +34,24 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const deleteUser = `-- name: DeleteUser :exec
+const deleteUser = `-- name: DeleteUser :one
 UPDATE users
 SET deleted_at = CURRENT_TIMESTAMP
-WHERE id = $1
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteUser, id)
-	return err
+func (q *Queries) DeleteUser(ctx context.Context, id int32) (int32, error) {
+	row := q.db.QueryRow(ctx, deleteUser, id)
+	var id_2 int32
+	err := row.Scan(&id_2)
+	return id_2, err
 }
 
 const getUser = `-- name: GetUser :one
 SELECT id, name, email, created_at, updated_at, deleted_at FROM users
-WHERE id = $1 AND deleted_at IS NULL
+WHERE id = $1 AND
+deleted_at IS NULL
 `
 
 func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
@@ -66,7 +70,8 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, name, email, created_at, updated_at, deleted_at FROM users
-WHERE email = $1
+WHERE email = $1 AND
+deleted_at IS NULL
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -119,7 +124,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET name = $2, email = $3, updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING id, name, email, created_at, updated_at, deleted_at
 `
 

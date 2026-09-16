@@ -14,9 +14,8 @@ type Querier interface {
 	BorrowBook(ctx context.Context, arg BorrowBookParams) (BorrowedBook, error)
 	CreateBook(ctx context.Context, arg CreateBookParams) (Book, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	DeleteBook(ctx context.Context, id int32) error
-	DeleteUser(ctx context.Context, id int32) error
-	GetActiveBorrowByBook(ctx context.Context, bookID int32) (BorrowedBook, error)
+	DeleteBook(ctx context.Context, id int32) (int32, error)
+	DeleteUser(ctx context.Context, id int32) (int32, error)
 	GetBook(ctx context.Context, id int32) (Book, error)
 	GetBookForUpdate(ctx context.Context, id int32) (Book, error)
 	GetOverdueBooks(ctx context.Context) ([]GetOverdueBooksRow, error)

@@ -11,7 +11,6 @@ WHERE id = $1;
 SELECT * FROM users
 WHERE email = $1;
 
-
 -- name: ListUsers :many
 SELECT * FROM users
 ORDER BY id;
@@ -22,6 +21,7 @@ SET name = $2, email = $3, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 RETURNING *;
 
--- name: DeleteUser :exec
+-- name: DeleteUser :one
 DELETE FROM users
-WHERE id = $1;
+WHERE id = $1
+RETURNING id;

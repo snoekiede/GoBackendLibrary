@@ -9,11 +9,6 @@ SET returned_at = CURRENT_TIMESTAMP
 WHERE book_id = $1 AND user_id = $2 AND returned_at IS NULL
 RETURNING *;
 
--- name: GetActiveBorrowByBook :one
-SELECT * FROM borrowed_books
-WHERE book_id = $1 AND returned_at IS NULL
-LIMIT 1;
-
 -- name: GetUserBorrowedBooks :many
 SELECT bb.*, b.title, b.author
 FROM borrowed_books bb

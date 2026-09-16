@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "bookbackend/docs"
 	"bookbackend/internal/api"
 	db "bookbackend/internal/database"
 	"context"
@@ -12,23 +11,18 @@ import (
 	"syscall"
 	"time"
 
+	_ "bookbackend/docs"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
-	httpSwagger "github.com/swaggo/http-swagger"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
-
-type CreateBookRequest struct {
-	Title             string `json:"title"`
-	Author            string `json:"author"`
-	Description       string `json:"description"`
-	YearOfPublication int32  `json:"year_of_publication"`
-}
 
 // @title Library API
 // @version 1.0
-// @description API for managing a book store with borrowing functionality
+// @description API for managing a library with borrowing functionality
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name API Support
@@ -37,9 +31,7 @@ type CreateBookRequest struct {
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host localhost:3000
 // @BasePath /
-// @schemes http
 func main() {
 	//get the connection from an environment variable
 
@@ -52,39 +44,57 @@ func main() {
 	}
 
 	pool, err := pgxpool.New(context.Background(), dbUrl)
-	queries := db.New(pool)
 
-	// Create the bookstore
-	bookstore := api.NewBookStore(queries, pool)
-	userstore := api.NewUserStore(queries)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer pool.Close()
+
+	if err := pool.Ping(context.Background()); err != nil {
+		log.Fatal(err)
+	}
+
+	queries := db.New(pool)
+	bookhandler := api.NewBookHandler(queries, pool)
+	userhandler := api.NewUserHandler(queries)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
+	r.Mount("/books", bookhandler.Routes())
+	r.Mount("/users", userhandler.Routes())
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello World"))
-	})
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
+
+	r.Get("/health/live", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK"))
 	})
 
-	setupBookRoutes(r, bookstore)
-	setupUserRoutes(r, userstore)
-	setupBorrowRoutes(r, bookstore)
+	r.Get("/health/ready", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+
+		defer cancel()
+
+		if err := pool.Ping(ctx); err != nil {
+			http.Error(w, "NOT READY", http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK"))
+	})
 
 	srv := &http.Server{
-		Addr:    ":3000",
-		Handler: r,
+		Addr:              ":3000",
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {
-		log.Println("Server starting on port 3000")
+		log.Println("Server is running on port 3000")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal(err)
+			log.Fatalf("listen: %s\n", err)
 		}
 	}()
 
@@ -96,40 +106,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+		log.Printf("Graceful shutdown failed: %v", err)
+		if err := srv.Close(); err != nil {
+			log.Fatalf("Unable to close server: %v", err)
+		}
 	}
-	log.Println("Server exited gracefully")
 
-}
-
-func setupBookRoutes(r *chi.Mux, store *api.BookStore) {
-	r.Get("/books", func(w http.ResponseWriter, r *http.Request) {
-		store.FetchBooks(w, r)
-	})
-
-	r.Get("/books/{id}", func(w http.ResponseWriter, r *http.Request) {
-		store.FetchBookByID(w, r)
-	})
-
-	r.Post("/books", func(w http.ResponseWriter, r *http.Request) {
-		store.CreateBook(w, r)
-	})
-
-	r.Delete("/books/{id}", func(w http.ResponseWriter, r *http.Request) {
-		store.DeleteBook(w, r)
-	})
-}
-
-func setupUserRoutes(r *chi.Mux, store *api.UserStore) {
-	r.Get("/users", store.FetchUsers)
-	r.Get("/users/{id}", store.FetchUserById)
-	r.Post("/users", store.CreateUser)
-	r.Delete("/users/{id}", store.DeleteUser)
-}
-
-func setupBorrowRoutes(r *chi.Mux, store *api.BookStore) {
-	r.Post("/borrow", store.BorrowBook)
-	r.Post("/return", store.ReturnBook)
-	r.Get("/users/{id}/borrowed", store.GetUserBorrowedBooks)
-	r.Get("/overdue", store.GetOverdueBooks)
+	log.Println("Server stopped")
 }
