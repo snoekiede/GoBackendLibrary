@@ -1,117 +1,107 @@
-# GoBackendLibrary
+# Go Book Backend
 
-A step-by-step Go backend learning project that evolves from a basic HTTP server into a small library management API backed by PostgreSQL and sqlc.
+A step-by-step Go backend learning project that builds a library management API with Go, PostgreSQL, `chi`, `pgx`, `sqlc`, and Docker. Each lesson is designed to be self-contained so you can study the progression from a simple HTTP server to a production-style API with health checks, Swagger docs, and container orchestration.
 
-## Repository layout
+## Project structure
 
-- `lesson01`: Basic chi router and health endpoint
-- `lesson02`: PostgreSQL + pgxpool + first sqlc-generated queries
-- `lesson03`: CRUD handlers for books
-- `lesson04`: Store pattern refactor for book endpoints
-- `lesson05`: Users + borrowing and return flows
+The repository contains one lesson per folder:
 
-Each lesson is self-contained with its own `go.mod` so you can run and study them independently.
+- `lesson01` — minimal Go HTTP server with `chi`
+- `lesson02` — PostgreSQL connection and first `sqlc` integration
+- `lesson03` — CRUD endpoints for books
+- `lesson04` — service/store refactor for cleaner separation
+- `lesson05` — users and borrowing/return flows
+- `lesson06` — continued API growth and transaction-oriented patterns
+- `lesson07` — automated API tests
+- `lesson08` — Docker setup for the app and database
+- `lesson09` — Swagger/OpenAPI documentation and API docs
+- `lesson10` — health checks, graceful shutdown, and Kubernetes deployment assets
+
+Each lesson has its own `go.mod` and usually its own `db/` and `internal/` layout.
 
 ## Prerequisites
 
-- Go (match version in each lesson's `go.mod`)
-- PostgreSQL (required from `lesson02` onward)
-- sqlc (for regenerating query code)
-- goose (for running migrations)
+- Go 1.21+ (use the version defined in each lesson's `go.mod`)
+- PostgreSQL
+- Docker + Docker Compose (for lessons 08-10)
+- `sqlc` for generating typed database code
+- `goose` for applying migrations
+- `swag` if you regenerate Swagger documentation
 
 ## Quick start
 
-### 1. Run lesson01 (no database)
+### 1. Start with lesson 01
 
-```powershell
+```bash
 cd lesson01
 go mod tidy
 go run ./cmd/api
 ```
 
-App starts on `http://localhost:3000`.
+Open:
 
-### 2. Set up database for lessons 02-05
-
-Create a `.env` file inside the lesson folder you want to run.
-
-```env
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/bookbackend?sslmode=disable
+```text
+http://localhost:3000/
 ```
 
-Run migrations from that lesson folder:
+### 2. Run a database-backed lesson
 
-```powershell
+Inside the lesson you want to run, create a `.env` file:
+
+```env
+DATABASE_URL=postgres://postgres:password@localhost:5432/gobooksnew?sslmode=disable
+```
+
+Then apply migrations:
+
+```bash
 goose -dir db/migrations postgres "$env:DATABASE_URL" up
 ```
 
-If you are using a different shell, adjust environment variable syntax accordingly.
+If you are using a different shell, adjust the environment-variable syntax accordingly.
 
-### 3. Run any lesson
+Then start the API:
 
-```powershell
-cd lesson05
+```bash
+cd lesson10
 go mod tidy
 go run ./cmd/api
 ```
 
-Server listens on `http://localhost:3000` in every lesson.
+## Common API routes
 
-## Lesson details
+The library API follows this progression:
 
-### lesson01
-
-- Router and middleware setup with `chi`
-- Endpoint:
-  - `GET /` -> `Hello World`
-
-### lesson02
-
-- Adds PostgreSQL connectivity via `pgxpool`
-- Loads `DATABASE_URL` using `godotenv`
-- Demonstrates sqlc-generated `CreateBook` usage
-- Keeps root endpoint:
-  - `GET /` -> `Hello World`
-
-### lesson03
-
-Introduces book API handlers:
+### Books
 
 - `GET /books`
 - `GET /books/{id}`
 - `POST /books`
+- `PUT /books/{id}`
 - `DELETE /books/{id}`
 
-### lesson04
-
-Refactors book logic into a `BookStore` service while keeping the same book routes.
-
-### lesson05
-
-Extends the API with users and borrowing workflow.
-
-Book routes:
-
-- `GET /books`
-- `GET /books/{id}`
-- `POST /books`
-- `DELETE /books/{id}`
-
-User routes:
+### Users
 
 - `GET /users`
 - `GET /users/{id}`
 - `POST /users`
+- `PUT /users/{id}`
 - `DELETE /users/{id}`
 
-Borrowing routes:
+### Borrowing workflow
 
-- `POST /borrow`
-- `POST /return`
-- `GET /users/{id}/borrowed`
-- `GET /overdue`
+- `POST /books/borrow`
+- `POST /books/return`
+- `GET /books/user/{id}/borrowed`
+- `GET /books/overdue`
 
-## Example requests (lesson05)
+### Operational endpoints
+
+- `GET /swagger/*` — Swagger UI
+- `GET /health/live` — liveness probe
+- `GET /health/ready` — readiness probe
+
+## Example requests
 
 Create a user:
 
@@ -129,10 +119,10 @@ curl -X POST http://localhost:3000/books \
   -d '{"title":"The Go Programming Language","author":"Alan Donovan","description":"A comprehensive guide to Go","year_of_publication":2015}'
 ```
 
-Borrow a book (defaults to 14 days if `days` is omitted):
+Borrow a book:
 
 ```bash
-curl -X POST http://localhost:3000/borrow \
+curl -X POST http://localhost:3000/books/borrow \
   -H "Content-Type: application/json" \
   -d '{"book_id":1,"user_id":1,"days":7}'
 ```
@@ -140,108 +130,90 @@ curl -X POST http://localhost:3000/borrow \
 Return a book:
 
 ```bash
-curl -X POST http://localhost:3000/return \
+curl -X POST http://localhost:3000/books/return \
   -H "Content-Type: application/json" \
   -d '{"book_id":1,"user_id":1}'
 ```
 
-## Regenerate sqlc code
+Check the Swagger UI:
 
-For lessons that contain `sqlc.yaml`:
+```text
+http://localhost:3000/swagger/index.html
+```
 
-```powershell
+## Docker workflow
+
+Lessons 08-10 include Docker support.
+
+### Run the stack with Docker Compose
+
+```bash
+cd lesson10
+docker compose up --build
+```
+
+This starts:
+
+- PostgreSQL database
+- migration container
+- API container on port `3000`
+
+## Regenerating generated code
+
+For any lesson with `sqlc.yaml`:
+
+```bash
+cd lesson05
 sqlc generate
 ```
 
-Run this command from inside the corresponding lesson folder.
+For Swagger docs in newer lessons:
 
-## Notes
+```bash
+cd lesson10
+swag init -g cmd/api/main.go -o docs
+```
 
-- Migrations differ by lesson; always run migrations from the same lesson you are executing.
-- `lesson05` includes extra tables (`users`, `borrowed_books`) and additional book availability logic.
+## Migration notes
+
+- Run migrations from the same lesson directory as the app you are starting.
+- The schema changes between lessons, so mixing lesson folders is a common source of errors.
+- Always ensure the database URL matches the lesson configuration.
 
 ## Troubleshooting
 
-### Quick diagnostic checklist (under 1 minute)
-
-1. Confirm you are in the correct lesson folder before running commands.
-2. Verify `.env` exists in that lesson folder and includes `DATABASE_URL`.
-3. Ensure PostgreSQL is running and reachable with the same credentials.
-4. Run migrations from the same lesson folder:
-
-```powershell
-goose -dir db/migrations postgres "$env:DATABASE_URL" up
-```
-
-5. Start the API and check `http://localhost:3000/`.
-6. If an endpoint returns `404`, confirm that route exists in the lesson you started.
-
 ### `DATABASE_URL environment variable is not set`
 
-Cause:
-The app did not find `DATABASE_URL` in your environment or `.env` file.
+Create a `.env` file in the lesson folder and make sure it includes a valid `DATABASE_URL`.
 
-Fix:
+### `failed to connect to database`
 
-1. Make sure `.env` exists in the lesson folder you are running.
-2. Confirm it contains a valid `DATABASE_URL`.
-3. Start the app from that same lesson folder so `godotenv` can load `.env`.
+Confirm PostgreSQL is running and the host, port, user, password, and database name match the configured URL.
 
-### `failed to connect to database` or connection refused
+### `relation does not exist`
 
-Cause:
-PostgreSQL is not running, the host/port is wrong, or credentials are invalid.
+Run migrations from the same lesson directory before starting the API.
 
-Fix:
+### `404` for expected routes
 
-1. Verify PostgreSQL is running.
-2. Check username, password, host, port, and database name in `DATABASE_URL`.
-3. Test the connection with a SQL client before running the API.
-
-### API starts but tables are missing (`relation does not exist`)
-
-Cause:
-Migrations were not run, failed, or were run from the wrong lesson directory.
-
-Fix:
-
-1. `cd` into the lesson you are running.
-2. Run:
-
-```powershell
-goose -dir db/migrations postgres "$env:DATABASE_URL" up
-```
-
-3. Confirm migration files exist under `db/migrations` in that lesson.
-
-### `sqlc generate` fails
-
-Cause:
-`sqlc` is not installed, the command is run from the wrong folder, or SQL has syntax issues.
-
-Fix:
-
-1. Install `sqlc` and confirm it is on your PATH.
-2. Run `sqlc generate` from a lesson folder that contains `sqlc.yaml`.
-3. Validate SQL files in `db/queries` and migration schema under `db/migrations`.
-
-### `404` for expected endpoints
-
-Cause:
-You are likely running an earlier lesson that does not include those routes.
-
-Fix:
-
-1. Check which lesson is currently running.
-2. Use route sets listed in this README for that lesson.
-3. For users and borrow/return endpoints, run `lesson05`.
+Check which lesson you started. Older lessons do not include later routes like users or borrowing endpoints.
 
 ### Port `3000` already in use
 
-Cause:
-Another process is listening on the same port.
+Stop the process currently using that port or change the `Addr` in the lesson's `main.go`.
 
-Fix:
+## Learning path
 
-1. Stop the existing process using port `3000`.
-2. Or update `http.ListenAndServe(":3000", r)` in your lesson `main.go` to a free port.
+The best way to study this repository is to move through the lessons in order:
+
+1. `lesson01` — minimal API foundation
+2. `lesson02` — data access with PostgreSQL and `sqlc`
+3. `lesson03` — basic CRUD
+4. `lesson04` — cleaner architecture
+5. `lesson05` — richer business workflows
+6. `lesson06+` — resilience, testing, deployment readiness
+7. `lesson08-10` — Docker, docs, and Kubernetes-ready runtime
+
+## License
+
+This project is intended for learning and experimentation. Use it as a reference for building Go backend APIs.
