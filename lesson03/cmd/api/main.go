@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	//get the connection from an environment variable
+	// Get the connection from an environment variable
 
 	godotenv.Load()
 

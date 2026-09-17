@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	//get the connection from an environment variable
+	// Get the connection from an environment variable
 
 	godotenv.Load()
 
@@ -31,7 +31,7 @@ func main() {
 
 	defer pool.Close()
 
-	// test if we can reach the database
+	// Test if we can reach the database
 	if err := pool.Ping(context.Background()); err != nil {
 		log.Fatalf("Unable to connect to the database: %v", err)
 	}
