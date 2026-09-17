@@ -21,6 +21,7 @@ services:
     build:
       context: .
       dockerfile: deployment/Dockerfile.migrate
+    container_name: bookstore-migrate
     volumes:
       - ./db/migrations:/migrations:ro
     command: ["postgres", "postgres://postgres:password@db:5432/gobooksnew?sslmode=disable", "up"]
