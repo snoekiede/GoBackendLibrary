@@ -247,7 +247,7 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 		req.Days = 14
 	}
 
-	//Check if book exists
+	// Check if book exists
 	book, err := h.queries.GetBook(r.Context(), req.BookID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
