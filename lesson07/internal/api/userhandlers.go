@@ -150,6 +150,11 @@ func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "User not found")
 			return
 		}
+		var pgtrr *pgconn.PgError
+		if errors.As(err, &pgtrr) && pgtrr.Code == "23505" {
+			writeError(w, http.StatusConflict, "Email already exists")
+			return
+		}
 		log.Printf("Error updating user: %v", err)
 		writeError(w, http.StatusInternalServerError, "Failed to update user")
 		return

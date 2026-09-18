@@ -162,6 +162,7 @@ func (handler *UserHandler) FetchUserById(w http.ResponseWriter, r *http.Request
 // @Success 200 {object} models.UserResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
+// @Failure 409 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
 // @Router /users/{id} [put]
 func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -194,6 +195,11 @@ func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "User not found")
+			return
+		}
+		var pgtrr *pgconn.PgError
+		if errors.As(err, &pgtrr) && pgtrr.Code == "23505" {
+			writeError(w, http.StatusConflict, "Email already exists")
 			return
 		}
 		log.Printf("Error updating user: %v", err)
