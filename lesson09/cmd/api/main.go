@@ -4,6 +4,8 @@ import (
 	"bookbackend/internal/api"
 	db "bookbackend/internal/database"
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -33,26 +35,27 @@ import (
 
 // @BasePath /
 func main() {
-	//get the connection from an environment variable
-
-	godotenv.Load()
-
-	dbUrl := os.Getenv("DATABASE_URL")
-
-	if dbUrl == "" {
-		panic("DATABASE_URL environment variable is not set")
-	}
-
-	pool, err := pgxpool.New(context.Background(), dbUrl)
-
-	if err != nil {
+	if err := run(); err != nil {
 		log.Fatal(err)
 	}
+}
 
+func run() error {
+	godotenv.Load()
+
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		return errors.New("DATABASE_URL environment variable is not set")
+	}
+
+	pool, err := pgxpool.New(context.Background(), dbURL)
+	if err != nil {
+		return fmt.Errorf("unable to create connection pool: %w", err)
+	}
 	defer pool.Close()
 
 	if err := pool.Ping(context.Background()); err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("unable to connect to database: %w", err)
 	}
 
 	queries := db.New(pool)
@@ -73,26 +76,55 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
+	serverErr := make(chan error, 1)
+
 	go func() {
 		log.Println("Server is running on port 3000")
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+
+		if err := srv.ListenAndServe(); err != nil &&
+			!errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	defer signal.Stop(quit)
 
-	log.Println("Shutting down server...")
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	var serveErr error
+
+	select {
+	case sig := <-quit:
+		log.Printf("Received %s, shutting down server...", sig)
+
+	case serveErr = <-serverErr:
+		log.Printf("Server stopped unexpectedly: %v", serveErr)
+	}
+
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		30*time.Second,
+	)
 	defer cancel()
+
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Printf("Graceful shutdown failed: %v", err)
-		if err := srv.Close(); err != nil {
-			log.Fatalf("Unable to close server: %v", err)
+
+		if closeErr := srv.Close(); closeErr != nil {
+			return fmt.Errorf(
+				"graceful shutdown failed: %v; forced close failed: %w",
+				err,
+				closeErr,
+			)
 		}
 	}
 
 	log.Println("Server stopped")
+
+	if serveErr != nil {
+		return fmt.Errorf("HTTP server failed: %w", serveErr)
+	}
+
+	return nil
+
 }
