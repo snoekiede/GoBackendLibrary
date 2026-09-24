@@ -34,5 +34,6 @@ spec:
           httpGet:
             path: /health/ready
             port: 3000
+          timeoutSeconds: 3
 
 
