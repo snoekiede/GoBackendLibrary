@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookstore-api
+  namespace: bookstore
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bookstore-api
+  template:
+    metadata:
+      labels:
+        app: bookstore-api
+    spec:
+      terminationGracePeriodSeconds: 35
+      containers:
+      - name: api
+        image: iedesnoek/bookstore-api:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: DATABASE_URL
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3000
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3000
+          timeoutSeconds: 3
+
+
