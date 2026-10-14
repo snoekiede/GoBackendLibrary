@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -105,6 +106,19 @@ func TestCreateUser(t *testing.T) {
 			expectedStatus: http.StatusCreated,
 		},
 		{
+			name: "user fields at maximum length",
+			requestBody: CreateUserRequest{
+				Name:  strings.Repeat("n", MAX_NAME_LENGTH),
+				Email: strings.Repeat("a", MAX_EMAIL_LENGTH-len("@example.com")) + "@example.com",
+			},
+			mockResponse: db.User{
+				ID:    3,
+				Name:  strings.Repeat("n", MAX_NAME_LENGTH),
+				Email: strings.Repeat("a", MAX_EMAIL_LENGTH-len("@example.com")) + "@example.com",
+			},
+			expectedStatus: http.StatusCreated,
+		},
+		{
 			name: "database error",
 			requestBody: CreateUserRequest{
 				Name:  "Error User",
@@ -135,6 +149,30 @@ func TestCreateUser(t *testing.T) {
 			requestBody: CreateUserRequest{
 				Name:  "No Email",
 				Email: "",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "name exceeds maximum length",
+			requestBody: CreateUserRequest{
+				Name:  strings.Repeat("n", MAX_NAME_LENGTH+1),
+				Email: "name@example.com",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "email exceeds maximum length",
+			requestBody: CreateUserRequest{
+				Name:  "Long Email",
+				Email: strings.Repeat("a", MAX_EMAIL_LENGTH+1),
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "invalid email format",
+			requestBody: CreateUserRequest{
+				Name:  "Invalid Email",
+				Email: "not-an-email",
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -500,6 +538,33 @@ func TestUpdateUser(t *testing.T) {
 			requestBody: UpdateUserRequest{
 				Name:  "Test Name",
 				Email: "   ",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:   "name exceeds maximum length",
+			userID: "1",
+			requestBody: UpdateUserRequest{
+				Name:  strings.Repeat("n", MAX_NAME_LENGTH+1),
+				Email: "test@example.com",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:   "email exceeds maximum length",
+			userID: "1",
+			requestBody: UpdateUserRequest{
+				Name:  "Test User",
+				Email: strings.Repeat("a", MAX_EMAIL_LENGTH+1),
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:   "invalid email format",
+			userID: "1",
+			requestBody: UpdateUserRequest{
+				Name:  "Test User",
+				Email: "not-an-email",
 			},
 			expectedStatus: http.StatusBadRequest,
 		},

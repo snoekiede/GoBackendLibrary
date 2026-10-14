@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/mail"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -14,13 +15,30 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+const (
+	MAX_NAME_LENGTH  = 255
+	MAX_EMAIL_LENGTH = 255
+)
+
 func validateUser(name, email string) error {
 	if strings.TrimSpace(name) == "" {
 		return errors.New("name is required")
 	}
+	if len(name) > MAX_NAME_LENGTH {
+		return errors.New("name cannot exceed maximum length")
+	}
 	if strings.TrimSpace(email) == "" {
 		return errors.New("email is required")
 	}
+	if len(email) > MAX_EMAIL_LENGTH {
+		return errors.New("email cannot exceed maximum length")
+	}
+	addr, err := mail.ParseAddress(email)
+
+	if err != nil || addr.Address != email {
+		return errors.New("invalid email format")
+	}
+
 	return nil
 }
 

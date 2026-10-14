@@ -19,7 +19,9 @@ import (
 )
 
 const (
-	MAX_BORROW_DAYS = 30
+	MAX_BORROW_DAYS   = 30
+	MAX_AUTHOR_LENGTH = 255
+	MAX_TITLE_LENGTH  = 255
 )
 
 type CreateBookRequest struct {
@@ -48,8 +50,14 @@ func validateBook(title, author string) error {
 	if strings.TrimSpace(title) == "" {
 		return errors.New("title is required")
 	}
+	if len(title) > MAX_TITLE_LENGTH {
+		return errors.New("title cannot exceed maximum length")
+	}
 	if strings.TrimSpace(author) == "" {
 		return errors.New("author is required")
+	}
+	if len(author) > MAX_AUTHOR_LENGTH {
+		return errors.New("author cannot exceed maximum length")
 	}
 	return nil
 }

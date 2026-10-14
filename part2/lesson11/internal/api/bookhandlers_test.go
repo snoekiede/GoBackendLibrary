@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -150,6 +151,19 @@ func TestCreateBook(t *testing.T) {
 			expectedStatus: http.StatusCreated,
 		},
 		{
+			name: "book fields at maximum length",
+			requestBody: CreateBookRequest{
+				Title:  strings.Repeat("t", MAX_TITLE_LENGTH),
+				Author: strings.Repeat("a", MAX_AUTHOR_LENGTH),
+			},
+			mockResponse: db.Book{
+				ID:     3,
+				Title:  strings.Repeat("t", MAX_TITLE_LENGTH),
+				Author: strings.Repeat("a", MAX_AUTHOR_LENGTH),
+			},
+			expectedStatus: http.StatusCreated,
+		},
+		{
 			name: "database error",
 			requestBody: CreateBookRequest{
 				Title:  "Error Book",
@@ -171,6 +185,22 @@ func TestCreateBook(t *testing.T) {
 			requestBody: CreateBookRequest{
 				Title:  "Title",
 				Author: "",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "invalid request body: title exceeds maximum length",
+			requestBody: CreateBookRequest{
+				Title:  strings.Repeat("t", MAX_TITLE_LENGTH+1),
+				Author: "Author",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "invalid request body: author exceeds maximum length",
+			requestBody: CreateBookRequest{
+				Title:  "Title",
+				Author: strings.Repeat("a", MAX_AUTHOR_LENGTH+1),
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -725,6 +755,20 @@ func TestUpdateBookValidation(t *testing.T) {
 		{
 			name: "whitespace author",
 			body: UpdateBookRequest{Title: "Title", Author: "   "},
+		},
+		{
+			name: "title exceeds maximum length",
+			body: UpdateBookRequest{
+				Title:  strings.Repeat("t", MAX_TITLE_LENGTH+1),
+				Author: "Author",
+			},
+		},
+		{
+			name: "author exceeds maximum length",
+			body: UpdateBookRequest{
+				Title:  "Title",
+				Author: strings.Repeat("a", MAX_AUTHOR_LENGTH+1),
+			},
 		},
 	}
 
