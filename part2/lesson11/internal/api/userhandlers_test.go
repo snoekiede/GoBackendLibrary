@@ -138,12 +138,30 @@ func TestCreateUser(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
+		{
+			name: "whitespace-only name",
+			requestBody: CreateUserRequest{
+				Name:  "   ",
+				Email: "name@email.com",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "whitespace-only email",
+			requestBody: CreateUserRequest{
+				Name:  "No Email",
+				Email: "   ",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			createUserCalled := false
 			mockDB := &MockUserQueries{
 				CreateUserFunc: func(ctx context.Context, arg db.CreateUserParams) (db.User, error) {
+					createUserCalled = true
 					if tt.mockError != nil {
 						return db.User{}, tt.mockError
 					}
@@ -164,6 +182,10 @@ func TestCreateUser(t *testing.T) {
 
 			if rr.Code != tt.expectedStatus {
 				t.Errorf("expected status %d, got %d", tt.expectedStatus, rr.Code)
+			}
+
+			if tt.expectedStatus == http.StatusBadRequest && createUserCalled {
+				t.Error("CreateUser query should not be called for invalid input")
 			}
 
 			if tt.expectedStatus == http.StatusCreated {
@@ -265,6 +287,67 @@ func TestFetchUsers(t *testing.T) {
 				if len(users) != tt.expectedCount {
 					t.Errorf("expected %d users, got %d", tt.expectedCount, len(users))
 				}
+			}
+		})
+	}
+}
+
+func TestFetchUsersPagination(t *testing.T) {
+	tests := []struct {
+		name           string
+		query          string
+		expectedLimit  int32
+		expectedOffset int32
+	}{
+		{
+			name:           "default pagination",
+			expectedLimit:  DEFAULT_SIZE,
+			expectedOffset: 0,
+		},
+		{
+			name:           "requested page and size",
+			query:          "?page=3&size=25",
+			expectedLimit:  25,
+			expectedOffset: 50,
+		},
+		{
+			name:           "size is capped at maximum",
+			query:          "?page=2&size=200",
+			expectedLimit:  MAX_PAGE_SIZE,
+			expectedOffset: MAX_PAGE_SIZE,
+		},
+		{
+			name:           "invalid pagination uses defaults",
+			query:          "?page=0&size=invalid",
+			expectedLimit:  DEFAULT_SIZE,
+			expectedOffset: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var actualParams db.ListUsersParams
+			mockDB := &MockUserQueries{
+				ListUsersFunc: func(ctx context.Context, params db.ListUsersParams) ([]db.User, error) {
+					actualParams = params
+					return []db.User{}, nil
+				},
+			}
+
+			handler := NewUserHandler(mockDB)
+			req := httptest.NewRequest(http.MethodGet, "/users"+tt.query, nil)
+			rr := httptest.NewRecorder()
+
+			handler.FetchAllUsers(rr, req)
+
+			if rr.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+			}
+			if actualParams.Limit != tt.expectedLimit {
+				t.Errorf("expected limit %d, got %d", tt.expectedLimit, actualParams.Limit)
+			}
+			if actualParams.Offset != tt.expectedOffset {
+				t.Errorf("expected offset %d, got %d", tt.expectedOffset, actualParams.Offset)
 			}
 		})
 	}
@@ -387,6 +470,40 @@ func TestUpdateUser(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
+			name:   "missing name",
+			userID: "1",
+			requestBody: UpdateUserRequest{
+				Email: "test@example.com",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:   "whitespace-only name",
+			userID: "1",
+			requestBody: UpdateUserRequest{
+				Name:  "   ",
+				Email: "test@example.com",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:   "missing email",
+			userID: "1",
+			requestBody: UpdateUserRequest{
+				Name: "Test Name",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:   "whitespace-only email",
+			userID: "1",
+			requestBody: UpdateUserRequest{
+				Name:  "Test Name",
+				Email: "   ",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
 			name:   "update error",
 			userID: "1",
 			requestBody: UpdateUserRequest{
@@ -400,8 +517,10 @@ func TestUpdateUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			updateUserCalled := false
 			mockDB := &MockUserQueries{
 				UpdateUserFunc: func(ctx context.Context, params db.UpdateUserParams) (db.User, error) {
+					updateUserCalled = true
 					if tt.updateError != nil {
 						return db.User{}, tt.updateError
 					}
@@ -431,6 +550,10 @@ func TestUpdateUser(t *testing.T) {
 
 			if rr.Code != tt.expectedStatus {
 				t.Errorf("expected status %d, got %d", tt.expectedStatus, rr.Code)
+			}
+
+			if tt.expectedStatus == http.StatusBadRequest && updateUserCalled {
+				t.Error("UpdateUser query should not be called for invalid input")
 			}
 
 			if tt.expectedStatus == http.StatusOK {

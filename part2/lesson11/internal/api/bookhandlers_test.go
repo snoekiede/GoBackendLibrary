@@ -174,12 +174,30 @@ func TestCreateBook(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
+		{
+			name: "invalid request body: whitespace title",
+			requestBody: CreateBookRequest{
+				Title:  "   ",
+				Author: "Author",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "invalid request body: whitespace author",
+			requestBody: CreateBookRequest{
+				Title:  "Title",
+				Author: "   ",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			createBookCalled := false
 			mockDB := &MockQueries{
 				CreateBookFunc: func(ctx context.Context, params db.CreateBookParams) (db.Book, error) {
+					createBookCalled = true
 					if tt.mockError != nil {
 						return db.Book{}, tt.mockError
 					}
@@ -199,6 +217,10 @@ func TestCreateBook(t *testing.T) {
 
 			if rr.Code != tt.expectedStatus {
 				t.Errorf("expected status %d, got %d", tt.expectedStatus, rr.Code)
+			}
+
+			if tt.expectedStatus == http.StatusBadRequest && createBookCalled {
+				t.Error("CreateBook query should not be called for invalid input")
 			}
 
 			if tt.expectedStatus == http.StatusCreated {
@@ -265,6 +287,67 @@ func TestFetchBooks_DatabaseError(t *testing.T) {
 
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rr.Code)
+	}
+}
+
+func TestFetchBooksPagination(t *testing.T) {
+	tests := []struct {
+		name           string
+		query          string
+		expectedLimit  int32
+		expectedOffset int32
+	}{
+		{
+			name:           "default pagination",
+			expectedLimit:  DEFAULT_SIZE,
+			expectedOffset: 0,
+		},
+		{
+			name:           "requested page and size",
+			query:          "?page=3&size=25",
+			expectedLimit:  25,
+			expectedOffset: 50,
+		},
+		{
+			name:           "size is capped at maximum",
+			query:          "?page=2&size=200",
+			expectedLimit:  MAX_PAGE_SIZE,
+			expectedOffset: MAX_PAGE_SIZE,
+		},
+		{
+			name:           "invalid pagination uses defaults",
+			query:          "?page=0&size=invalid",
+			expectedLimit:  DEFAULT_SIZE,
+			expectedOffset: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var actualParams db.ListBooksParams
+			mockDB := &MockQueries{
+				ListBooksFunc: func(ctx context.Context, params db.ListBooksParams) ([]db.Book, error) {
+					actualParams = params
+					return []db.Book{}, nil
+				},
+			}
+
+			handler := NewBookHandler(mockDB, nil)
+			req := httptest.NewRequest(http.MethodGet, "/books"+tt.query, nil)
+			rr := httptest.NewRecorder()
+
+			handler.FetchBooks(rr, req)
+
+			if rr.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+			}
+			if actualParams.Limit != tt.expectedLimit {
+				t.Errorf("expected limit %d, got %d", tt.expectedLimit, actualParams.Limit)
+			}
+			if actualParams.Offset != tt.expectedOffset {
+				t.Errorf("expected offset %d, got %d", tt.expectedOffset, actualParams.Offset)
+			}
+		})
 	}
 }
 
@@ -554,16 +637,18 @@ func TestGetOverdueBooks(t *testing.T) {
 
 func TestBorrowBookValidation(t *testing.T) {
 	tests := []struct {
-		name string
-		body BorrowBookRequest
+		name           string
+		body           BorrowBookRequest
+		expectedStatus int
 	}{
 		{
 			name: "invalid book id",
 			body: BorrowBookRequest{
-				BookID: 0,
+				BookID: -1,
 				UserID: 1,
 				Days:   14,
 			},
+			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "invalid user id",
@@ -572,6 +657,7 @@ func TestBorrowBookValidation(t *testing.T) {
 				UserID: 0,
 				Days:   14,
 			},
+			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "negative borrowing period",
@@ -580,6 +666,16 @@ func TestBorrowBookValidation(t *testing.T) {
 				UserID: 1,
 				Days:   -1,
 			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "borrowing period exceeds maximum",
+			body: BorrowBookRequest{
+				BookID: 1,
+				UserID: 1,
+				Days:   MAX_BORROW_DAYS + 1,
+			},
+			expectedStatus: http.StatusBadRequest,
 		},
 	}
 
@@ -598,12 +694,59 @@ func TestBorrowBookValidation(t *testing.T) {
 
 			handler.BorrowBook(rr, req)
 
-			if rr.Code != http.StatusBadRequest {
+			if rr.Code != tt.expectedStatus {
 				t.Errorf(
 					"expected status %d, got %d",
-					http.StatusBadRequest,
+					tt.expectedStatus,
 					rr.Code,
 				)
+			}
+		})
+	}
+}
+
+func TestUpdateBookValidation(t *testing.T) {
+	tests := []struct {
+		name string
+		body UpdateBookRequest
+	}{
+		{
+			name: "missing title",
+			body: UpdateBookRequest{Author: "Author"},
+		},
+		{
+			name: "whitespace title",
+			body: UpdateBookRequest{Title: "   ", Author: "Author"},
+		},
+		{
+			name: "missing author",
+			body: UpdateBookRequest{Title: "Title"},
+		},
+		{
+			name: "whitespace author",
+			body: UpdateBookRequest{Title: "Title", Author: "   "},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockDB := &MockQueries{}
+			handler := NewBookHandler(mockDB, nil)
+
+			body, err := json.Marshal(tt.body)
+			if err != nil {
+				t.Fatalf("failed to marshal request: %v", err)
+			}
+			req := httptest.NewRequest(http.MethodPut, "/books/1", bytes.NewReader(body))
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("id", "1")
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+			rr := httptest.NewRecorder()
+
+			handler.UpdateBook(rr, req)
+
+			if rr.Code != http.StatusBadRequest {
+				t.Errorf("expected status %d, got %d", http.StatusBadRequest, rr.Code)
 			}
 		})
 	}
@@ -617,7 +760,7 @@ func TestReturnBookValidation(t *testing.T) {
 		{
 			name: "invalid book id",
 			body: ReturnBookRequest{
-				BookID: 0,
+				BookID: -1,
 				UserID: 1,
 			},
 		},

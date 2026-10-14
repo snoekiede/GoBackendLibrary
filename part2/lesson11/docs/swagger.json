@@ -1,10 +1,7 @@
 {
-    "schemes": [
-        "http"
-    ],
     "swagger": "2.0",
     "info": {
-        "description": "API for managing a book store with borrowing functionality",
+        "description": "API for managing a library with borrowing functionality",
         "title": "Library API",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
@@ -17,7 +14,6 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:3000",
     "basePath": "/",
     "paths": {
         "/books": {
@@ -33,6 +29,20 @@
                     "books"
                 ],
                 "summary": "List all books",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of books per page (default: 10, maximum: 100)",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -450,6 +460,20 @@
                     "users"
                 ],
                 "summary": "List all users",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of users per page (default: 10, maximum: 100)",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -613,6 +637,12 @@
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/bookbackend_internal_api_models.ErrorResponse"
                         }

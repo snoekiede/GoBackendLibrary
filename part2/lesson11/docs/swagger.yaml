@@ -174,12 +174,11 @@ definitions:
       name:
         type: string
     type: object
-host: localhost:3000
 info:
   contact:
     email: support@bookstore.com
     name: API Support
-  description: API for managing a book store with borrowing functionality
+  description: API for managing a library with borrowing functionality
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -192,6 +191,15 @@ paths:
       consumes:
       - application/json
       description: Get a list of all books in the database
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Number of books per page (default: 10, maximum: 100)'
+        in: query
+        name: size
+        type: integer
       produces:
       - application/json
       responses:
@@ -467,6 +475,15 @@ paths:
       consumes:
       - application/json
       description: Get a list of all users in the database
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Number of users per page (default: 10, maximum: 100)'
+        in: query
+        name: size
+        type: integer
       produces:
       - application/json
       responses:
@@ -610,6 +627,10 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/bookbackend_internal_api_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -648,6 +669,4 @@ paths:
       summary: Get a user's borrow history
       tags:
       - users
-schemes:
-- http
 swagger: "2.0"
