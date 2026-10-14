@@ -1,10 +1,19 @@
-FROM golang:1.27-alpine
+# Build stage 
+FROM golang:1.27-alpine AS builder 
+ARG GOOSE_VERSION=v3.27.3 
+RUN CGO_ENABLED=0 go install \ 
+    github.com/pressly/goose/v3/cmd/goose@${GOOSE_VERSION} 
 
-ARG GOOSE_VERSION=v3.27.3
+# Runtime stage 
+FROM alpine:3.24 
+RUN apk add --no-cache ca-certificates \ 
+    && addgroup -S migrator \ 
+    && adduser -S -G migrator migrator 
 
-# Install goose
-RUN go install github.com/pressly/goose/v3/cmd/goose@${GOOSE_VERSION}
+COPY --from=builder /go/bin/goose /usr/local/bin/goose 
 
-WORKDIR /migrations
+WORKDIR /migrations COPY --chown=migrator:migrator db/migrations /migrations 
+
+USER migrator 
 
 ENTRYPOINT ["goose"]
