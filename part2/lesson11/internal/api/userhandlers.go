@@ -98,6 +98,8 @@ func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 // @Tags users
 // @Accept json
 // @Produce json
+// @Param page query int false "Page number (default: 1)"
+// @Param size query int false "Number of users per page (default: 10, maximum: 100)"
 // @Success 200 {array} models.UserResponse
 // @Failure 500 {object} models.ErrorResponse
 // @Router /users [get]

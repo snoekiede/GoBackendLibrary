@@ -112,6 +112,8 @@ func NewBookHandler(queries QuerierWithTx, pool *pgxpool.Pool) *BookHandler {
 // @Tags books
 // @Accept json
 // @Produce json
+// @Param page query int false "Page number (default: 1)"
+// @Param size query int false "Number of books per page (default: 10, maximum: 100)"
 // @Success 200 {array} models.BookResponse
 // @Failure 500 {object} models.ErrorResponse
 // @Router /books [get]
