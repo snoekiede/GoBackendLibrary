@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
@@ -106,12 +104,12 @@ func (r ReturnBookRequest) Validate() error {
 }
 
 type BookHandler struct {
-	queries QuerierWithTx
-	pool    *pgxpool.Pool
+	queries    QuerierWithTx
+	txBeginner TxBeginner
 }
 
-func NewBookHandler(queries QuerierWithTx, pool *pgxpool.Pool) *BookHandler {
-	return &BookHandler{queries: queries, pool: pool}
+func NewBookHandler(queries QuerierWithTx, txBeginner TxBeginner) *BookHandler {
+	return &BookHandler{queries: queries, txBeginner: txBeginner}
 }
 
 // FetchBooks godoc
@@ -194,9 +192,7 @@ func (h *BookHandler) FetchBookByID(w http.ResponseWriter, r *http.Request) {
 func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 	var req CreateBookRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Unable to decode request body: %v", err)
-		writeError(w, http.StatusBadRequest, "Invalid request body")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	if err := req.Validate(); err != nil {
@@ -283,9 +279,7 @@ func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req UpdateBookRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Unable to decode request body: %v", err)
-		writeError(w, http.StatusBadRequest, "Invalid request body")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -333,9 +327,7 @@ func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 // @Router /books/borrow [post]
 func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 	var req BorrowBookRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Unable to decode request body: %v", err)
-		writeError(w, http.StatusBadRequest, "Invalid request body")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -347,7 +339,7 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 	if req.Days == 0 {
 		req.Days = 14
 	}
-	tx, err := h.pool.BeginTx(r.Context(), pgx.TxOptions{})
+	tx, err := h.txBeginner.BeginTx(r.Context(), pgx.TxOptions{})
 	if err != nil {
 		log.Printf("Unable to start transaction: %v", err)
 		writeError(w, http.StatusInternalServerError, "Internal server error")
@@ -438,9 +430,7 @@ func (h *BookHandler) BorrowBook(w http.ResponseWriter, r *http.Request) {
 func (h *BookHandler) ReturnBook(w http.ResponseWriter, r *http.Request) {
 	var req ReturnBookRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Unable to decode request body: %v", err)
-		writeError(w, http.StatusBadRequest, "Invalid request body")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -449,7 +439,7 @@ func (h *BookHandler) ReturnBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := h.pool.BeginTx(r.Context(), pgx.TxOptions{})
+	tx, err := h.txBeginner.BeginTx(r.Context(), pgx.TxOptions{})
 	if err != nil {
 		log.Printf("Unable to start transaction: %v", err)
 		writeError(w, http.StatusInternalServerError, "Internal server error")

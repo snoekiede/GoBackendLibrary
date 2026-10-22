@@ -3,7 +3,6 @@ package api
 import (
 	"bookbackend/internal/api/models"
 	db "bookbackend/internal/database"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -83,9 +82,7 @@ func NewUserHandler(queries db.Querier) *UserHandler {
 func (handler *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var req CreateUserRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Error decoding request body: %v", err)
-		writeError(w, http.StatusBadRequest, "Invalid request payload")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	if err := req.Validate(); err != nil {
@@ -199,9 +196,7 @@ func (handler *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req UpdateUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Error decoding request body: %v", err)
-		writeError(w, http.StatusBadRequest, "Invalid request payload")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
